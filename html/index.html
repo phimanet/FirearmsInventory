@@ -1107,13 +1107,21 @@
           </div>
         </div>
 
-        <!-- Scanning Preview & Progress -->
+        <!-- Scanning Preview & Crop Area -->
         <div id="ocrActiveScanArea" style="display:none; flex-direction:column; gap:12px; border-top:1px solid var(--border-color); padding-top:14px;">
-          <div style="position:relative; width:100%; height:260px; background:#080c14; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-            <img id="ocrPreviewImage" src="" style="width:100%; height:100%; object-fit:contain;">
-            <div id="ocrScanOverlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.6); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:#fff;">
-              <span style="display:inline-block; width:32px; height:32px; border:3px solid #10b981; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span>
-              <span id="ocrScanProgressText" style="font-size:0.88rem; font-weight:600;">Analyzing photo with Optical OCR...</span>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; font-weight:600; color:#34d399;">📐 Drag or pinch on the photo to select the exact serial number area:</span>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn btn-secondary" onclick="resetCropSelection()" style="padding:3px 8px; font-size:0.75rem;">Reset Full Photo</button>
+              <button type="button" class="btn btn-primary" onclick="executeCroppedOcrScan()" id="scanSelectedBoxBtn" style="padding:3px 12px; font-size:0.75rem;">🔍 Scan Selected Area</button>
+            </div>
+          </div>
+
+          <div id="ocrCanvasContainer" style="position:relative; width:100%; height:320px; background:#080c14; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; touch-action:none; user-select:none;">
+            <canvas id="ocrCropCanvas" style="max-width:100%; max-height:100%; display:block; cursor:crosshair;"></canvas>
+            <div id="ocrScanOverlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.65); display:none; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:#fff; z-index:15;">
+              <span style="display:inline-block; width:34px; height:34px; border:3px solid #10b981; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span>
+              <span id="ocrScanProgressText" style="font-size:0.88rem; font-weight:600;">Analyzing selected area...</span>
             </div>
           </div>
 
@@ -2023,13 +2031,133 @@
       });
     }
 
-    // Execute OCR analysis on selected photo
+    // Canvas Area Selector & Crop State
+    let cropImgObj = null;
+    let cropSelection = null; // {x, y, w, h} in image coordinate space
+    let isDraggingCrop = false;
+    let cropDragStart = {x: 0, y: 0};
+
+    // Load photo onto interactive crop canvas
+    function initCropCanvas(imageUrl) {
+      const canvas = document.getElementById('ocrCropCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      cropImgObj = new Image();
+      cropImgObj.crossOrigin = 'anonymous';
+      cropImgObj.onload = () => {
+        canvas.width = cropImgObj.naturalWidth || cropImgObj.width;
+        canvas.height = cropImgObj.naturalHeight || cropImgObj.height;
+        cropSelection = null;
+        redrawCropCanvas();
+        setupCropEventListeners();
+      };
+      cropImgObj.src = imageUrl;
+    }
+
+    function redrawCropCanvas() {
+      const canvas = document.getElementById('ocrCropCanvas');
+      if (!canvas || !cropImgObj) return;
+      const ctx = canvas.getContext('2d');
+
+      // Draw base image
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(cropImgObj, 0, 0, canvas.width, canvas.height);
+
+      if (cropSelection && cropSelection.w && cropSelection.h) {
+        // Semi-transparent dim overlay on unselected areas
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Clear out the selected region so it's bright and clear
+        ctx.clearRect(cropSelection.x, cropSelection.y, cropSelection.w, cropSelection.h);
+        ctx.drawImage(cropImgObj, cropSelection.x, cropSelection.y, cropSelection.w, cropSelection.h, cropSelection.x, cropSelection.y, cropSelection.w, cropSelection.h);
+
+        // Highlight border
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = Math.max(3, Math.round(canvas.width / 350));
+        ctx.strokeRect(cropSelection.x, cropSelection.y, cropSelection.w, cropSelection.h);
+
+        // Corner handles
+        const handleSize = Math.max(8, Math.round(canvas.width / 120));
+        ctx.fillStyle = '#34d399';
+        ctx.fillRect(cropSelection.x - handleSize/2, cropSelection.y - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropSelection.x + cropSelection.w - handleSize/2, cropSelection.y - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropSelection.x - handleSize/2, cropSelection.y + cropSelection.h - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropSelection.x + cropSelection.w - handleSize/2, cropSelection.y + cropSelection.h - handleSize/2, handleSize, handleSize);
+      }
+    }
+
+    function resetCropSelection() {
+      cropSelection = null;
+      redrawCropCanvas();
+      showToast('Reset to entire photo');
+    }
+
+    // Convert mouse/touch screen coordinates to Canvas internal pixel coordinates
+    function getCanvasCoords(canvas, e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function setupCropEventListeners() {
+      const canvas = document.getElementById('ocrCropCanvas');
+      if (!canvas || canvas.dataset.hasCropListeners) return;
+      canvas.dataset.hasCropListeners = 'true';
+
+      const start = (e) => {
+        isDraggingCrop = true;
+        cropDragStart = getCanvasCoords(canvas, e);
+        cropSelection = { x: cropDragStart.x, y: cropDragStart.y, w: 0, h: 0 };
+        redrawCropCanvas();
+      };
+
+      const move = (e) => {
+        if (!isDraggingCrop) return;
+        const current = getCanvasCoords(canvas, e);
+        cropSelection = {
+          x: Math.min(cropDragStart.x, current.x),
+          y: Math.min(cropDragStart.y, current.y),
+          w: Math.abs(current.x - cropDragStart.x),
+          h: Math.abs(current.y - cropDragStart.y)
+        };
+        redrawCropCanvas();
+      };
+
+      const end = () => {
+        if (!isDraggingCrop) return;
+        isDraggingCrop = false;
+        // If selection is too small, cancel it
+        if (!cropSelection || cropSelection.w < 15 || cropSelection.h < 15) {
+          cropSelection = null;
+          redrawCropCanvas();
+        } else {
+          showToast('Area selected! Tap "Scan Selected Area"');
+        }
+      };
+
+      canvas.addEventListener('mousedown', start);
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', end);
+
+      canvas.addEventListener('touchstart', (e) => { e.preventDefault(); start(e); }, { passive: false });
+      window.addEventListener('touchmove', (e) => { if (isDraggingCrop) { e.preventDefault(); move(e); } }, { passive: false });
+      window.addEventListener('touchend', end);
+    }
+
+    // Execute OCR analysis on selected photo (or cropped region)
     async function startPhotoOcrScan(photoUrl) {
       ocrActivePhotoUrl = photoUrl;
       const scanArea = document.getElementById('ocrActiveScanArea');
-      const previewImg = document.getElementById('ocrPreviewImage');
-      const scanOverlay = document.getElementById('ocrScanOverlay');
-      const progressText = document.getElementById('ocrScanProgressText');
       const resultsContainer = document.getElementById('ocrResultsContainer');
       const candidatesList = document.getElementById('ocrCandidatesList');
       const manualInput = document.getElementById('ocrManualInput');
@@ -2037,27 +2165,73 @@
 
       scanArea.style.display = 'flex';
       resultsContainer.style.display = 'none';
-      scanOverlay.style.display = 'flex';
-      progressText.textContent = 'Preparing & enhancing photo contrast...';
-      previewImg.src = photoUrl;
       candidatesList.innerHTML = '';
       manualInput.value = '';
       rawTextEl.textContent = '';
 
+      // Initialize the interactive crop canvas with the image
+      initCropCanvas(photoUrl);
+
+      // Auto run initial scan on full photo
+      await executeCroppedOcrScan();
+    }
+
+    // Run OCR on the selected cropped box (or full photo if no box)
+    async function executeCroppedOcrScan() {
+      if (!cropImgObj) return;
+
+      const scanOverlay = document.getElementById('ocrScanOverlay');
+      const progressText = document.getElementById('ocrScanProgressText');
+      const resultsContainer = document.getElementById('ocrResultsContainer');
+      const candidatesList = document.getElementById('ocrCandidatesList');
+      const manualInput = document.getElementById('ocrManualInput');
+      const rawTextEl = document.getElementById('ocrRawTextOutput');
+
+      scanOverlay.style.display = 'flex';
+      progressText.textContent = cropSelection ? 'Cropping & enhancing selected area...' : 'Enhancing photo contrast...';
+      resultsContainer.style.display = 'none';
+
       try {
-        if (typeof Tesseract === 'undefined') {
-          progressText.textContent = 'Loading Optical OCR Engine...';
+        // Create an offscreen canvas for the target region
+        const offCanvas = document.createElement('canvas');
+        let srcX = 0, srcY = 0, srcW = cropImgObj.naturalWidth, srcH = cropImgObj.naturalHeight;
+
+        if (cropSelection && cropSelection.w > 20 && cropSelection.h > 20) {
+          srcX = Math.max(0, Math.round(cropSelection.x));
+          srcY = Math.max(0, Math.round(cropSelection.y));
+          srcW = Math.min(cropImgObj.naturalWidth - srcX, Math.round(cropSelection.w));
+          srcH = Math.min(cropImgObj.naturalHeight - srcY, Math.round(cropSelection.h));
         }
 
-        const enhancedDataUrl = await enhanceImageForOcr(photoUrl);
+        offCanvas.width = srcW;
+        offCanvas.height = srcH;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.drawImage(cropImgObj, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
 
-        progressText.textContent = 'Scanning receiver, frame & slide stamps...';
+        // Apply contrast and sharpness enhancement to metal stamp
+        const imgData = offCtx.getImageData(0, 0, srcW, srcH);
+        const data = imgData.data;
+        const contrast = 1.45; // 45% boost for cropped region
+        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          const adj = factor * (gray - 128) + 128;
+          data[i] = adj;
+          data[i + 1] = adj;
+          data[i + 2] = adj;
+        }
+        offCtx.putImageData(imgData, 0, 0);
+
+        const targetDataUrl = offCanvas.toDataURL('image/jpeg', 0.95);
+
+        progressText.textContent = 'Scanning serial number characters...';
         const worker = await Tesseract.createWorker('eng');
-        const ret = await worker.recognize(enhancedDataUrl);
+        const ret = await worker.recognize(targetDataUrl);
         await worker.terminate();
 
         const rawText = ret.data.text || '';
-        rawTextEl.textContent = rawText.trim() || '(No plain text detected in image)';
+        rawTextEl.textContent = rawText.trim() || '(No plain text detected in selected region)';
 
         const candidates = findPotentialSerials(rawText);
 
@@ -2067,7 +2241,7 @@
         if (candidates.length === 0) {
           candidatesList.innerHTML = `
             <div style="background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.3); border-radius:8px; padding:10px 14px; color:#fda4af; font-size:0.83rem;">
-              No distinct serial stamping was automatically isolated. You can type it directly into the box below or try another closer photo.
+              No serial number was detected in this specific area. Try dragging a tight box closely around the serial number digits, or type it directly below.
             </div>
           `;
         } else {
@@ -2076,7 +2250,7 @@
             card.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:10px 14px; cursor:pointer; transition:all 0.15s;';
             card.innerHTML = `
               <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-family:monospace; font-size:1.05rem; font-weight:700; color:#34d399; letter-spacing:0.06em;">${cand}</span>
+                <span style="font-family:monospace; font-size:1.1rem; font-weight:700; color:#34d399; letter-spacing:0.06em;">${cand}</span>
                 ${idx === 0 ? `<span class="badge-tag" style="background:rgba(16,185,129,0.2); color:#34d399;">Top Match</span>` : ''}
               </div>
               <button type="button" class="btn btn-primary" style="padding:4px 10px; font-size:0.75rem;">Use This</button>
@@ -2088,12 +2262,13 @@
           });
 
           manualInput.value = candidates[0];
+          showToast(`Detected: ${candidates[0]}`);
         }
       } catch (err) {
-        console.error('Scan error:', err);
+        console.error('Cropped scan error:', err);
         scanOverlay.style.display = 'none';
         resultsContainer.style.display = 'flex';
-        candidatesList.innerHTML = `<div style="color:#fb7185; font-size:0.85rem;">OCR analysis error: ${err.message || 'Please check image and try again.'}</div>`;
+        candidatesList.innerHTML = `<div style="color:#fb7185; font-size:0.85rem;">OCR analysis error: ${err.message || 'Please check selection and try again.'}</div>`;
       }
     }
 
