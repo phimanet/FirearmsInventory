@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Firearms & Gear Inventory | Armory Vault</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><path d='M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm0 4a3 3 0 110 6 3 3 0 010-6zm5 11.2c-1.46 1.63-3.3 2.65-5 3.02-1.7-.37-3.54-1.39-5-3.02V15.5c0-1.66 3.34-2.5 5-2.5s5 .84 5 2.5v1.7z'/></svg>">
+  <!-- Tesseract.js for OCR Serial Number grabber from camera photos -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     :root {
       --bg-primary: #0a0f18;
@@ -869,8 +871,22 @@
               <input type="text" class="form-control" id="formBarrel" placeholder="e.g. 4.02 in, 16.0 in">
             </div>
             <div class="form-group">
-              <label class="form-label">Serial Number</label>
-              <input type="text" class="form-control" id="formSerial" placeholder="Serial Number (Maskable)">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label class="form-label">Serial Number</label>
+                <!-- Quick OCR Serial Grabber Button -->
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('ocrSerialInput').click()" style="padding:2px 8px; font-size:0.72rem; gap:4px;" title="Scan serial number directly from a photo">
+                  <svg viewBox="0 0 24 24" style="width:13px; height:13px; fill:#34d399;"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+                  <span>📷 Scan Serial</span>
+                </button>
+              </div>
+              <input type="file" id="ocrSerialInput" accept="image/*" capture="environment" style="display:none;" onchange="handleSerialScan(event)">
+              <div style="position:relative;">
+                <input type="text" class="form-control" id="formSerial" placeholder="Serial Number (Maskable)" style="width:100%;">
+                <span id="ocrScanningBadge" style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:0.72rem; color:#34d399; align-items:center; gap:4px; background:rgba(16,185,129,0.15); padding:2px 6px; border-radius:4px;">
+                  <span style="display:inline-block; width:8px; height:8px; border:2px solid #34d399; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span>
+                  Reading...
+                </span>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Storage Location</label>
@@ -1614,6 +1630,12 @@
             formImages.push(data.url);
             renderFormPhotos();
             successCount++;
+
+            // If Serial field is currently empty, attempt automatic background OCR on first photo
+            const currentSerial = document.getElementById('formSerial').value.trim();
+            if (!currentSerial && i === 0) {
+              extractSerialFromDataUrl(base64Data, true);
+            }
           }
         } catch (err) {
           console.error('Photo upload failed for file:', file.name, err);
@@ -1629,6 +1651,107 @@
         showToast(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded successfully`);
       } else {
         showToast('Image upload failed');
+      }
+    }
+
+    // Filter OCR text for firearm serial number patterns (alphanumeric, dashes, 4-18 chars)
+    function findPotentialSerials(rawText) {
+      if (!rawText) return [];
+      const lines = rawText.split('\n');
+      const candidates = new Set();
+
+      // Look for lines that explicitly mention "SN", "S/N", "SERIAL", "NO.", or standard engraved stamps
+      const snPrefixRegex = /(?:s\/?n|serial|no\.?|sn:?)\s*[:#\-]?\s*([a-z0-9\-_]{4,18})/gi;
+      let match;
+      while ((match = snPrefixRegex.exec(rawText)) !== null) {
+        if (match[1] && match[1].length >= 4) {
+          candidates.add(match[1].toUpperCase().trim());
+        }
+      }
+
+      // Also tokenize words for typical firearm serial formats (e.g. AFCD8923, BCM-99412A, 19X12345, US-49102)
+      const tokenRegex = /\b([a-zA-Z0-9][a-zA-Z0-9\-]{3,16}[a-zA-Z0-9])\b/g;
+      while ((match = tokenRegex.exec(rawText)) !== null) {
+        const token = match[1].toUpperCase().trim();
+        // Skip common words and calibers
+        const blacklisted = ['MADE', 'AUSTRIA', 'USA', 'GERMANY', 'GLOCK', 'BERETTA', 'COLT', 'RUGER', 'SIG', 'SAUER', 'SMITH', 'WESSON', 'CALIBER', 'PARABELLUM', 'LUGER', 'AUTO', 'GAUGE', 'INCH', 'WARNING', 'READ', 'MANUAL', 'BEFORE', 'USE', 'PATENT', 'POLICE', 'MILITARY', 'MODEL'];
+        const isBlacklisted = blacklisted.some(b => token === b || token.startsWith(b));
+        const hasDigit = /\d/.test(token);
+        const hasLetter = /[A-Z]/.test(token);
+
+        if (!isBlacklisted && token.length >= 4 && (hasDigit || (hasLetter && token.length >= 6))) {
+          candidates.add(token);
+        }
+      }
+
+      return Array.from(candidates);
+    }
+
+    // OCR Engine using Tesseract.js
+    async function extractSerialFromDataUrl(dataUrl, isAutoBackground = false) {
+      const badge = document.getElementById('ocrScanningBadge');
+      if (badge) badge.style.display = 'inline-flex';
+
+      try {
+        if (typeof Tesseract === 'undefined') {
+          console.warn('Tesseract.js not yet loaded');
+          if (badge) badge.style.display = 'none';
+          return;
+        }
+
+        const worker = await Tesseract.createWorker('eng');
+        const ret = await worker.recognize(dataUrl);
+        await worker.terminate();
+
+        const rawText = ret.data.text || '';
+        const found = findPotentialSerials(rawText);
+
+        if (found.length > 0) {
+          const serialInput = document.getElementById('formSerial');
+          const detectedSerial = found[0];
+
+          if (isAutoBackground) {
+            // Auto fill if empty, notify user
+            if (!serialInput.value.trim()) {
+              serialInput.value = detectedSerial;
+              showToast(`Serial detected from photo: ${detectedSerial}`);
+            }
+          } else {
+            serialInput.value = detectedSerial;
+            showToast(`Serial captured: ${detectedSerial}`);
+          }
+        } else if (!isAutoBackground) {
+          showToast('No clear serial number found in photo. Ensure good lighting & focus.');
+        }
+      } catch (err) {
+        console.error('OCR recognition error:', err);
+        if (!isAutoBackground) showToast('Failed to scan serial number');
+      } finally {
+        if (badge) badge.style.display = 'none';
+      }
+    }
+
+    // Handle explicit "Scan Serial" button trigger
+    async function handleSerialScan(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      showToast('Scanning photo for serial number...');
+      const badge = document.getElementById('ocrScanningBadge');
+      if (badge) badge.style.display = 'inline-flex';
+
+      try {
+        const base64Data = await processAndCompressImage(file, 2048, 0.92);
+        // Also add the photo to the firearm's image gallery preview so the user has the photo
+        formImages.push(base64Data);
+        renderFormPhotos();
+
+        await extractSerialFromDataUrl(base64Data, false);
+      } catch (err) {
+        showToast('Error reading photo');
+      } finally {
+        e.target.value = '';
+        if (badge) badge.style.display = 'none';
       }
     }
 
