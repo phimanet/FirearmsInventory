@@ -565,6 +565,7 @@
       .clean-table { border: 1px solid #ccc !important; }
       .clean-table th, .clean-table td { color: #000 !important; border-bottom: 1px solid #eee !important; }
     }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -675,6 +676,17 @@
           <span class="badge-tag" id="detailTypeBadge">Pistol</span>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
+          <!-- Quick add photo from iPhone/iPad directly in popout -->
+          <input type="file" id="detailPhotoCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleDetailQuickPhotoUpload(event)">
+          <input type="file" id="detailPhotoLibraryInput" accept="image/*" multiple style="display:none;" onchange="handleDetailQuickPhotoUpload(event)">
+          <button class="btn btn-secondary" onclick="document.getElementById('detailPhotoCameraInput').click()" title="Take photo of this firearm with camera">
+            <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+            <span style="display:none; @media(min-width:600px){display:inline;}">Camera</span>
+          </button>
+          <button class="btn btn-secondary" onclick="document.getElementById('detailPhotoLibraryInput').click()" title="Add photos from photo library">
+            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <span style="display:none; @media(min-width:600px){display:inline;}">Add Photos</span>
+          </button>
           <button class="btn btn-secondary" id="editDetailBtn">Edit</button>
           <button class="btn btn-danger" id="deleteDetailBtn">Delete</button>
           <button class="modal-close" id="closeDetailModalBtn">
@@ -888,16 +900,37 @@
 
           <!-- Photo upload & URL links -->
           <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
-            <label class="form-label" style="margin-bottom:8px; display:block;">Firearm Photos</label>
-            <div style="display:flex; gap:10px; margin-bottom:12px;">
-              <input type="file" id="formPhotoUpload" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <label class="form-label" style="margin-bottom:0;">Firearm Photos</label>
+              <span style="font-size:0.75rem; color:var(--text-dim);">iPhone / iPad Camera & Photo Library supported</span>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+              <!-- Camera Capture Input for iPhone/iPad -->
+              <input type="file" id="formPhotoCamera" accept="image/*" capture="environment" style="display:none;" onchange="handleImageUpload(event)">
+              <button type="button" class="btn btn-primary" onclick="document.getElementById('formPhotoCamera').click()">
+                <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+                Take Photo (Camera)
+              </button>
+
+              <!-- Photo Library / Gallery Input (supports multiple selection) -->
+              <input type="file" id="formPhotoUpload" accept="image/*" multiple style="display:none;" onchange="handleImageUpload(event)">
               <button type="button" class="btn btn-secondary" onclick="document.getElementById('formPhotoUpload').click()">
                 <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-                Upload Photo from Device
+                Photo Library / Files
               </button>
-              <input type="text" id="formPhotoUrlInput" class="form-control" placeholder="Or enter image URL and press Add" style="flex:1;">
-              <button type="button" class="btn btn-secondary" onclick="addPhotoUrl()">Add URL</button>
+
+              <div style="display:flex; gap:6px; flex:1; min-width:260px;">
+                <input type="text" id="formPhotoUrlInput" class="form-control" placeholder="Or enter image URL and press Add" style="flex:1;">
+                <button type="button" class="btn btn-secondary" onclick="addPhotoUrl()">Add URL</button>
+              </div>
             </div>
+
+            <!-- Upload progress/status container -->
+            <div id="uploadStatusIndicator" style="display:none; font-size:0.8rem; color:#34d399; margin-bottom:10px; align-items:center; gap:8px;">
+              <span style="display:inline-block; width:12px; height:12px; border:2px solid #34d399; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span>
+              <span id="uploadStatusText">Optimizing and uploading photo...</span>
+            </div>
+
             <div id="formPhotosPreview" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
           </div>
 
@@ -1493,29 +1526,161 @@
       }
     }
 
-    async function handleImageUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
+    // Helper to resize/compress high-res mobile photos (iPhone 12MP/48MP) before upload
+    function processAndCompressImage(file, maxDimension = 2048, quality = 0.88) {
+      return new Promise((resolve, reject) => {
+        // If file is not standard image or is SVG/GIF, read directly
+        if (!file.type.startsWith('image/') || file.type.includes('svg') || file.type.includes('gif')) {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+          return;
+        }
 
-      const reader = new FileReader();
-      reader.onload = async function() {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          let width = img.naturalWidth || img.width;
+          let height = img.naturalHeight || img.height;
+
+          // Downscale if image exceeds maxDimension to avoid iOS out-of-memory or huge payloads
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+
+          // Draw image to canvas
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Export as JPEG with 0.88 quality (sharp, crisp, fast to upload)
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+
+        img.onerror = () => {
+          // Fallback to raw FileReader if canvas decoding fails
+          URL.revokeObjectURL(objectUrl);
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        };
+
+        img.src = objectUrl;
+      });
+    }
+
+    async function handleImageUpload(e) {
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
+
+      const indicator = document.getElementById('uploadStatusIndicator');
+      const indicatorText = document.getElementById('uploadStatusText');
+      if (indicator) {
+        indicator.style.display = 'flex';
+        indicatorText.textContent = `Preparing ${files.length} photo${files.length > 1 ? 's' : ''}...`;
+      }
+
+      let successCount = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (indicatorText) {
+          indicatorText.textContent = `Optimizing & uploading ${i + 1} of ${files.length}...`;
+        }
+
         try {
+          const base64Data = await processAndCompressImage(file);
           const res = await fetch('/api/upload-photo', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: reader.result })
+            body: JSON.stringify({ image: base64Data })
           });
           const data = await res.json();
           if (data.success) {
             formImages.push(data.url);
             renderFormPhotos();
-            showToast('Photo uploaded successfully');
+            successCount++;
           }
         } catch (err) {
-          showToast('Image upload failed');
+          console.error('Photo upload failed for file:', file.name, err);
         }
-      };
-      reader.readAsDataURL(file);
+      }
+
+      if (indicator) indicator.style.display = 'none';
+
+      // Reset the file input so the user can re-select or take another photo
+      e.target.value = '';
+
+      if (successCount > 0) {
+        showToast(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded successfully`);
+      } else {
+        showToast('Image upload failed');
+      }
+    }
+
+    // Quick direct photo upload directly from the firearm's detail modal
+    async function handleDetailQuickPhotoUpload(e) {
+      if (!selectedFirearm) return;
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
+
+      showToast(`Uploading ${files.length} photo${files.length > 1 ? 's' : ''}...`);
+
+      let addedUrls = [];
+      for (const file of files) {
+        try {
+          const base64Data = await processAndCompressImage(file);
+          const res = await fetch('/api/upload-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64Data })
+          });
+          const data = await res.json();
+          if (data.success) {
+            addedUrls.push(data.url);
+          }
+        } catch (err) {
+          console.error('Quick upload error:', err);
+        }
+      }
+
+      e.target.value = '';
+
+      if (addedUrls.length > 0) {
+        const updatedImages = [...(selectedFirearm.images || []), ...addedUrls];
+        try {
+          const res = await fetch(`/api/firearms/${selectedFirearm.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ images: updatedImages })
+          });
+          const data = await res.json();
+          if (data.success) {
+            selectedFirearm.images = updatedImages;
+            showToast(`${addedUrls.length} photo${addedUrls.length > 1 ? 's' : ''} added to firearm`);
+            await fetchFirearms();
+            openDetailModal(selectedFirearm.id);
+          }
+        } catch (err) {
+          showToast('Failed to link photo to firearm');
+        }
+      } else {
+        showToast('Photo upload failed');
+      }
     }
 
     // Accessory rows

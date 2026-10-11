@@ -430,14 +430,20 @@ class RequestHandler(BaseHTTPRequestHandler):
                 data_str = body["image"]
                 ext = "jpg"
                 if "data:image/" in data_str and ";base64," in data_str:
-                    header, base64_data = data_str.split(";base64,")
+                    header, base64_data = data_str.split(";base64,", 1)
                     if "png" in header:
                         ext = "png"
                     elif "webp" in header:
                         ext = "webp"
+                    elif "heic" in header or "heif" in header:
+                        ext = "heic"
+                    elif "gif" in header:
+                        ext = "gif"
                 else:
                     base64_data = data_str
 
+                # Clean any whitespace or newlines from base64 string
+                base64_data = "".join(base64_data.split())
                 img_bytes = base64.b64decode(base64_data)
                 filename = f"fa_{int(time.time())}_{uuid.uuid4().hex[:6]}.{ext}"
                 filepath = os.path.join(UPLOADS_DIR, filename)
