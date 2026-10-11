@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Firearms & Gear Inventory | Armory Vault</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><path d='M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm0 4a3 3 0 110 6 3 3 0 010-6zm5 11.2c-1.46 1.63-3.3 2.65-5 3.02-1.7-.37-3.54-1.39-5-3.02V15.5c0-1.66 3.34-2.5 5-2.5s5 .84 5 2.5v1.7z'/></svg>">
+  <style>
+    :root {
+      --bg-primary: #0a0f18;
+      --bg-secondary: #111927;
+      --bg-card: #162234;
+      --bg-card-hover: #1c2b42;
+      --bg-input: #0c1422;
+      --border-color: #223249;
+      --border-focus: #10b981;
+      --text-main: #f3f6fc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-emerald: #10b981;
+      --accent-emerald-hover: #059669;
+      --accent-blue: #3b82f6;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #8b5cf6;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 2px 5px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
+      --shadow-lg: 0 12px 30px rgba(0,0,0,0.6);
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background-color: rgba(17, 25, 39, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #10b981, #0284c7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+    .brand-icon svg { width: 22px; height: 22px; fill: #ffffff; }
+    .brand-text h1 {
+      font-size: 1.18rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .brand-text p { font-size: 0.75rem; color: var(--text-muted); }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .search-bar {
+      display: flex;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 6px 12px;
+      width: 220px;
+      transition: all 0.2s ease;
+    }
+    .search-bar:focus-within {
+      border-color: var(--border-focus);
+      width: 280px;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+    .search-bar svg { width: 16px; height: 16px; fill: var(--text-dim); margin-right: 8px; flex-shrink: 0; }
+    .search-bar input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      width: 100%;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      user-select: none;
+    }
+    .btn svg { width: 16px; height: 16px; fill: currentColor; }
+    .btn-primary { background: var(--accent-emerald); color: #ffffff; }
+    .btn-primary:hover { background: var(--accent-emerald-hover); }
+    .btn-secondary { background: var(--bg-card); color: var(--text-main); border-color: var(--border-color); }
+    .btn-secondary:hover { background: var(--bg-card-hover); border-color: #3b506d; }
+    .btn-ghost { background: transparent; color: var(--text-muted); }
+    .btn-ghost:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .btn-danger { background: rgba(244, 63, 94, 0.15); color: #fb7185; border-color: rgba(244, 63, 94, 0.3); }
+    .btn-danger:hover { background: rgba(244, 63, 94, 0.25); }
+
+    /* Summary Bar */
+    .summary-bar {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .metrics { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .metric-item { display: flex; flex-direction: column; }
+    .metric-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 600; }
+    .metric-val { font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
+    .metric-val.emerald { color: #34d399; }
+    .metric-val.blue { color: #60a5fa; }
+
+    /* Filter Chips */
+    .filter-bar {
+      padding: 14px 24px 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .chip {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .chip:hover { color: var(--text-main); border-color: #3b506d; }
+    .chip.active { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.4); }
+
+    /* Main Container */
+    main { flex: 1; padding: 18px 24px 60px; max-width: 1600px; margin: 0 auto; width: 100%; }
+
+    /* Firearms Grid */
+    .firearms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+      margin-top: 10px;
+    }
+
+    .firearm-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s, border-color 0.2s;
+      position: relative;
+    }
+    .firearm-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+      border-color: #2f4565;
+    }
+
+    .card-photo-wrapper {
+      position: relative;
+      width: 100%;
+      height: 210px;
+      background: #090e17;
+      overflow: hidden;
+    }
+    .card-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .firearm-card:hover .card-photo { transform: scale(1.03); }
+    .no-photo-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-dim);
+    }
+    .no-photo-placeholder svg { width: 36px; height: 36px; fill: currentColor; }
+
+    .card-badge-type {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(10, 15, 24, 0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #e2e8f0;
+    }
+    .card-badge-rounds {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.2);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-content { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .card-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .card-make { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #60a5fa; letter-spacing: 0.04em; }
+    .card-model { font-size: 1.15rem; font-weight: 700; color: var(--text-main); line-height: 1.25; }
+    .card-val { text-align: right; }
+    .card-price-primary { font-size: 1.1rem; font-weight: 700; color: #34d399; }
+    .card-price-sub { font-size: 0.72rem; color: var(--text-muted); }
+
+    .card-specs-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .spec-pill {
+      font-size: 0.73rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+    .spec-pill strong { color: var(--text-main); font-weight: 600; }
+
+    .card-serial-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+    }
+    .card-serial-label { color: var(--text-dim); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .card-serial-val { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; letter-spacing: 0.05em; }
+
+    .card-accessories {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px dashed var(--border-color);
+      padding-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-accessories svg { width: 14px; height: 14px; fill: #f59e0b; flex-shrink: 0; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      grid-column: 1 / -1;
+    }
+    .empty-state svg { width: 48px; height: 48px; fill: var(--text-dim); margin-bottom: 12px; }
+
+    /* Modals & Popouts */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 8, 15, 0.8);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-content {
+      background: var(--bg-secondary);
+      border: 1px solid #283a54;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.96);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+    .modal-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--bg-secondary);
+      z-index: 10;
+    }
+    .modal-title { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+    }
+    .modal-close:hover { color: var(--text-main); background: rgba(255,255,255,0.08); }
+    .modal-close svg { width: 20px; height: 20px; fill: currentColor; }
+    .modal-body { padding: 22px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Detail Popout Specifics */
+    .detail-gallery {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: thin;
+    }
+    .detail-img-thumb {
+      width: 160px;
+      height: 110px;
+      border-radius: var(--radius-md);
+      object-fit: cover;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s;
+      flex-shrink: 0;
+      background: #090e17;
+    }
+    .detail-img-thumb.active { border-color: var(--accent-emerald); }
+    .detail-main-img-wrap {
+      width: 100%;
+      height: 380px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: #080c14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .detail-main-img { width: 100%; height: 100%; object-fit: contain; }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .detail-field { display: flex; flex-direction: column; gap: 2px; }
+    .detail-field-label { font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--text-dim); }
+    .detail-field-val { font-size: 0.95rem; font-weight: 600; color: var(--text-main); }
+    .serial-masked { letter-spacing: 0.1em; color: #a5b4fc; }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .section-title svg { width: 18px; height: 18px; fill: var(--accent-emerald); }
+
+    /* Tables */
+    .clean-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+    .clean-table th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .clean-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+    .clean-table tr:last-child td { border-bottom: none; }
+
+    /* Tag pill */
+    .tag-pill {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    /* Comparison Modal */
+    .compare-matrix {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .compare-column {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .compare-img-wrap {
+      width: 100%;
+      height: 220px;
+      background: #080c14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .compare-img { width: 100%; height: 100%; object-fit: contain; }
+    .compare-header { padding: 12px 14px; border-bottom: 1px solid var(--border-color); }
+    .compare-rows { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; font-size: 0.82rem; }
+    .compare-row-item { display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 6px; }
+
+    /* Form styling */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+    .form-control {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-control:focus { border-color: var(--accent-emerald); }
+    textarea.form-control { min-height: 80px; resize: vertical; }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #ffffff;
+      border: 1px solid #334155;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 999;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* Print Styles for Insurance Export */
+    @media print {
+      header, .summary-bar, .filter-bar, .header-actions, .btn, .modal-close { display: none !important; }
+      body { background: #ffffff !important; color: #000000 !important; }
+      .modal-overlay { position: static !important; background: transparent !important; }
+      .modal-content { max-width: 100% !important; border: none !important; box-shadow: none !important; }
+      .clean-table { border: 1px solid #ccc !important; }
+      .clean-table th, .clean-table td { color: #000 !important; border-bottom: 1px solid #eee !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm0 4a3 3 0 110 6 3 3 0 010-6zm5 11.2c-1.46 1.63-3.3 2.65-5 3.02-1.7-.37-3.54-1.39-5-3.02V15.5c0-1.66 3.34-2.5 5-2.5s5 .84 5 2.5v1.7z"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>ARMORY VAULT <span class="badge-tag">FIREARMS INVENTORY</span></h1>
+        <p>Tactical Inventory, Round Counts & Insurance Valuation</p>
+      </div>
+    </a>
+
+    <div class="header-actions">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="searchInput" placeholder="Search make, model, caliber, serial...">
+      </div>
+
+      <!-- Serial Privacy Toggle Button -->
+      <button class="btn btn-secondary" id="toggleMaskBtn" title="Toggle Serial Masking (Privacy Mode)">
+        <svg id="maskIcon" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>
+        <span id="maskBtnText">Mask Serials</span>
+      </button>
+
+      <!-- Visual Comparison Matrix Button -->
+      <button class="btn btn-secondary" id="compareGalleryBtn" title="Compare Firearms Side-by-Side">
+        <svg viewBox="0 0 24 24"><path d="M10 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h5v2h2V1h-2v2zm-5 16V5h5v14H5zm14-16h-5v2h5v14h-5v2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+        <span>Compare</span>
+      </button>
+
+      <!-- Insurance Report Modal Button -->
+      <button class="btn btn-secondary" id="insuranceBtn" title="Insurance Valuation Summary">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+        <span>Insurance Report</span>
+      </button>
+
+      <!-- Snapshot Save Button -->
+      <button class="btn btn-secondary" id="snapshotBtn" title="Manual Backup Snapshot">
+        <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        <span>Snapshot</span>
+      </button>
+
+      <!-- Add Firearm Button -->
+      <button class="btn btn-primary" id="addFirearmBtn">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        <span>Add Firearm</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Metric Summary Banner -->
+  <div class="summary-bar">
+    <div class="metrics">
+      <div class="metric-item">
+        <span class="metric-label">Total Inventory</span>
+        <span class="metric-val" id="summaryTotal">0 Firearms</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Total Replacement Value</span>
+        <span class="metric-val emerald" id="summaryValue">$0.00</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Mounted Accessories</span>
+        <span class="metric-val blue" id="summaryAccessories">$0.00</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Total Insured Value</span>
+        <span class="metric-val emerald" id="summaryInsured">$0.00</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Total Rounds Tracked</span>
+        <span class="metric-val" id="summaryRounds">0 Rds</span>
+      </div>
+    </div>
+    <div style="font-size:0.75rem; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
+      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+      <span>Live Microservice: Port 8186</span>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar" id="filterBar">
+    <button class="chip active" data-type="All">All Classifications</button>
+    <button class="chip" data-type="Pistol">Pistols</button>
+    <button class="chip" data-type="Rifle">Rifles</button>
+    <button class="chip" data-type="Shotgun">Shotguns</button>
+    <button class="chip" data-type="NFA / Suppressor">NFA / Suppressors</button>
+    <button class="chip" data-type="Receiver / Lower">Receivers</button>
+  </div>
+
+  <!-- Main Grid -->
+  <main>
+    <div class="firearms-grid" id="firearmsGrid">
+      <!-- Populated via JavaScript -->
+    </div>
+  </main>
+
+  <!-- ================= DETAIL POPOUT MODAL ================= -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 class="modal-title" id="detailTitle">Firearm Details</h2>
+          <span class="badge-tag" id="detailTypeBadge">Pistol</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn btn-secondary" id="editDetailBtn">Edit</button>
+          <button class="btn btn-danger" id="deleteDetailBtn">Delete</button>
+          <button class="modal-close" id="closeDetailModalBtn">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <!-- Photo Gallery -->
+        <div class="detail-main-img-wrap">
+          <img id="detailMainPhoto" class="detail-main-img" src="" alt="Firearm Main View">
+        </div>
+        <div class="detail-gallery" id="detailThumbsGallery"></div>
+
+        <!-- Specifications & Identification Matrix -->
+        <div>
+          <h3 class="section-title">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            Identification & Specifications
+          </h3>
+          <div class="detail-grid">
+            <div class="detail-field">
+              <span class="detail-field-label">Make / Manufacturer</span>
+              <span class="detail-field-val" id="detailMake">-</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Model</span>
+              <span class="detail-field-val" id="detailModel">-</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Caliber / Gauge</span>
+              <span class="detail-field-val" id="detailCaliber">-</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Action Type</span>
+              <span class="detail-field-val" id="detailAction">-</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Barrel Length</span>
+              <span class="detail-field-val" id="detailBarrel">-</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Storage Location</span>
+              <span class="detail-field-val" id="detailLocation">-</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Serial Number</span>
+              <span class="detail-field-val" id="detailSerial">-</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Rounds Fired</span>
+              <span class="detail-field-val" id="detailRoundCount" style="color:#34d399;">0 Rds</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Purchase Price</span>
+              <span class="detail-field-val" id="detailPurchasePrice">$0.00</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Replacement Value</span>
+              <span class="detail-field-val" id="detailReplacementValue" style="color:#34d399;">$0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div id="detailNotesContainer">
+          <h3 class="section-title">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            Notes & Observations
+          </h3>
+          <p id="detailNotes" style="font-size:0.88rem; line-height:1.6; color:var(--text-muted); background:var(--bg-card); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border-color);"></p>
+        </div>
+
+        <!-- Mounted Accessories & Optic Build List -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 class="section-title" style="margin-bottom:0;">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+              Mounted Build & Accessories
+            </h3>
+            <span id="detailAccessoriesTotal" style="font-size:0.85rem; font-weight:700; color:#34d399;">Total: $0.00</span>
+          </div>
+          <table class="clean-table" id="detailAccessoriesTable">
+            <thead>
+              <tr>
+                <th>Accessory / Optic</th>
+                <th>Category</th>
+                <th>Serial #</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody id="detailAccessoriesTbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Sources, Dealers & Pricing Links -->
+        <div>
+          <h3 class="section-title">
+            <svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s2.24-5-5-5z"/></svg>
+            Purchasing Sources & Dealers
+          </h3>
+          <table class="clean-table" id="detailSourcesTable">
+            <thead>
+              <tr>
+                <th>Source Name</th>
+                <th>Price</th>
+                <th>Tags</th>
+                <th>Link</th>
+              </tr>
+            </thead>
+            <tbody id="detailSourcesTbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Maintenance & Round Count Log -->
+        <div>
+          <h3 class="section-title">
+            <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+            Maintenance & Range Sessions
+          </h3>
+          <table class="clean-table" id="detailMaintenanceTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Action / Type</th>
+                <th>Rounds Fired</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="detailMaintenanceTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ADD / EDIT MODAL ================= -->
+  <div class="modal-overlay" id="formModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="formModalTitle">Add New Firearm</h2>
+        <button class="modal-close" id="closeFormModalBtn">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="firearmForm" onsubmit="event.preventDefault(); saveFirearm();">
+          <input type="hidden" id="formFirearmId">
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Classification / Type *</label>
+              <select class="form-control" id="formType" required>
+                <option value="Pistol">Pistol</option>
+                <option value="Rifle">Rifle</option>
+                <option value="Shotgun">Shotgun</option>
+                <option value="NFA / Suppressor">NFA / Suppressor</option>
+                <option value="Receiver / Lower">Receiver / Lower</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Make / Manufacturer *</label>
+              <input type="text" class="form-control" id="formMake" placeholder="e.g. Glock, BCM, Beretta" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Model *</label>
+              <input type="text" class="form-control" id="formModel" placeholder="e.g. 19 Gen 5, Recce-16" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Caliber / Gauge</label>
+              <input type="text" class="form-control" id="formCaliber" placeholder="e.g. 9mm, 5.56 NATO, 12 GA">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Action</label>
+              <input type="text" class="form-control" id="formAction" placeholder="e.g. Striker Fired, Semi-Auto, Bolt Action">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Barrel Length</label>
+              <input type="text" class="form-control" id="formBarrel" placeholder="e.g. 4.02 in, 16.0 in">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Serial Number</label>
+              <input type="text" class="form-control" id="formSerial" placeholder="Serial Number (Maskable)">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Storage Location</label>
+              <input type="text" class="form-control" id="formLocation" placeholder="e.g. Primary Safe - Shelf 1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Round Count</label>
+              <input type="number" class="form-control" id="formRounds" min="0" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Purchase Price ($)</label>
+              <input type="number" step="0.01" class="form-control" id="formPurchasePrice" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Replacement Value ($)</label>
+              <input type="number" step="0.01" class="form-control" id="formReplacementValue" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Purchase Date</label>
+              <input type="date" class="form-control" id="formPurchaseDate">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Notes & Specifications</label>
+              <textarea class="form-control" id="formNotes" placeholder="Upgrades, zero distance, configuration notes..."></textarea>
+            </div>
+          </div>
+
+          <!-- Photo upload & URL links -->
+          <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+            <label class="form-label" style="margin-bottom:8px; display:block;">Firearm Photos</label>
+            <div style="display:flex; gap:10px; margin-bottom:12px;">
+              <input type="file" id="formPhotoUpload" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('formPhotoUpload').click()">
+                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                Upload Photo from Device
+              </button>
+              <input type="text" id="formPhotoUrlInput" class="form-control" placeholder="Or enter image URL and press Add" style="flex:1;">
+              <button type="button" class="btn btn-secondary" onclick="addPhotoUrl()">Add URL</button>
+            </div>
+            <div id="formPhotosPreview" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+          </div>
+
+          <!-- Accessories Editor -->
+          <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <label class="form-label">Mounted Accessories & Optics</label>
+              <button type="button" class="btn btn-secondary" onclick="addAccessoryRow()">+ Add Accessory</button>
+            </div>
+            <div id="formAccessoriesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+
+          <!-- Sources Editor -->
+          <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <label class="form-label">Sources, Stores & Price Links</label>
+              <button type="button" class="btn btn-secondary" onclick="addSourceRow()">+ Add Source</button>
+            </div>
+            <div id="formSourcesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+
+          <!-- Maintenance Logs Editor -->
+          <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <label class="form-label">Maintenance & Range Logs</label>
+              <button type="button" class="btn btn-secondary" onclick="addMaintenanceRow()">+ Add Log</button>
+            </div>
+            <div id="formMaintenanceList" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+
+          <div style="margin-top:24px; display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" class="btn btn-ghost" onclick="closeFormModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="saveFormBtn">Save Firearm Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= COMPARISON MODAL ================= -->
+  <div class="modal-overlay" id="compareModal">
+    <div class="modal-content" style="max-width:1200px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Firearms Visual Comparison Matrix</h2>
+        <button class="modal-close" onclick="closeCompareModal()">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem; color:var(--text-muted);">Side-by-side spec comparison and visual photo gallery for selecting or evaluating builds.</p>
+        <div class="compare-matrix" id="compareMatrixContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= INSURANCE REPORT MODAL ================= -->
+  <div class="modal-overlay" id="insuranceModal">
+    <div class="modal-content" style="max-width:1100px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Insurance Valuation & Schedule Report</h2>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary" onclick="window.print()">Print / PDF Export</button>
+          <button class="modal-close" onclick="closeInsuranceModal()">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body" id="insuranceReportPrintArea">
+        <div style="border-bottom:1px solid var(--border-color); padding-bottom:12px; margin-bottom:12px;">
+          <h3 style="font-size:1.1rem; margin-bottom:4px;">Firearms & Scheduled Personal Property Inventory</h3>
+          <p style="font-size:0.8rem; color:var(--text-muted);" id="insuranceReportDate"></p>
+        </div>
+
+        <div class="detail-grid" style="margin-bottom:18px;">
+          <div class="detail-field">
+            <span class="detail-field-label">Total Scheduled Items</span>
+            <span class="detail-field-val" id="insRepCount">0</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Original Acquisition Cost</span>
+            <span class="detail-field-val" id="insRepCost">$0.00</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Accessories Valuation</span>
+            <span class="detail-field-val" id="insRepAccVal">$0.00</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Total Replacement Value</span>
+            <span class="detail-field-val" id="insRepTotalVal" style="color:#34d399;">$0.00</span>
+          </div>
+        </div>
+
+        <table class="clean-table" id="insuranceScheduleTable">
+          <thead>
+            <tr>
+              <th>Classification</th>
+              <th>Make & Model</th>
+              <th>Caliber</th>
+              <th>Serial Number</th>
+              <th>Location</th>
+              <th>Purchase Price</th>
+              <th>Replacement Value</th>
+            </tr>
+          </thead>
+          <tbody id="insuranceScheduleTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" style="width:18px; height:18px; fill:#34d399;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    <span id="toastMsg">Changes saved</span>
+  </div>
+
+  <script>
+    // App State
+    let firearms = [];
+    let currentFilter = "All";
+    let maskSerials = true;
+    let selectedFirearm = null;
+    let currentDetailImageIdx = 0;
+
+    // Format numbers with commas: e.g. 12500 -> "12,500.00"
+    function formatCurrency(val) {
+      const num = Number(val) || 0;
+      return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatNumber(val) {
+      const num = Number(val) || 0;
+      return num.toLocaleString('en-US');
+    }
+
+    function formatSerial(serial) {
+      if (!serial) return 'N/A';
+      if (!maskSerials) return serial;
+      if (serial.length <= 4) return '••••';
+      return '••••••••' + serial.slice(-4);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    // Load Data from API
+    async function fetchFirearms() {
+      try {
+        const res = await fetch('/api/firearms');
+        const data = await res.json();
+        if (data.success) {
+          firearms = data.firearms || [];
+          renderSummary(data.summary);
+          renderFirearmsGrid();
+        }
+      } catch (err) {
+        console.error('Failed to load firearms:', err);
+      }
+    }
+
+    // Render Metrics
+    function renderSummary(summary) {
+      if (!summary) return;
+      document.getElementById('summaryTotal').textContent = `${formatNumber(summary.totalFirearms)} Firearms`;
+      document.getElementById('summaryValue').textContent = formatCurrency(summary.totalReplacementValue);
+      document.getElementById('summaryAccessories').textContent = formatCurrency(summary.totalAccessoriesValue);
+      document.getElementById('summaryInsured').textContent = formatCurrency(summary.grandTotalInsuredValue);
+      document.getElementById('summaryRounds').textContent = `${formatNumber(summary.totalRoundsTracked)} Rds`;
+    }
+
+    // Render Grid
+    function renderFirearmsGrid() {
+      const grid = document.getElementById('firearmsGrid');
+      grid.innerHTML = '';
+
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      let list = firearms;
+
+      if (currentFilter !== 'All') {
+        list = list.filter(f => f.type === currentFilter);
+      }
+
+      if (search) {
+        list = list.filter(f =>
+          (f.make || '').toLowerCase().includes(search) ||
+          (f.model || '').toLowerCase().includes(search) ||
+          (f.caliber || '').toLowerCase().includes(search) ||
+          (f.serialNumber || '').toLowerCase().includes(search) ||
+          (f.location || '').toLowerCase().includes(search) ||
+          (f.accessories || []).some(a => (a.name || '').toLowerCase().includes(search))
+        );
+      }
+
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            <h3>No firearms found</h3>
+            <p style="margin-top:4px;">Try refining your filter or click "Add Firearm" to register one in your armory.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'firearm-card';
+        card.onclick = () => openDetailModal(f.id);
+
+        const photoUrl = (f.images && f.images.length > 0) ? f.images[0] : null;
+        const photoHtml = photoUrl
+          ? `<img class="card-photo" src="${photoUrl}" alt="${f.make} ${f.model}">`
+          : `<div class="no-photo-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><span>No Photo</span></div>`;
+
+        const accCount = (f.accessories || []).length;
+        const accSnippet = accCount > 0
+          ? `<div class="card-accessories"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg> ${accCount} Mounted Accessory${accCount > 1 ? 's' : ''}: ${f.accessories.map(a => a.name).slice(0, 2).join(', ')}${accCount > 2 ? '...' : ''}</div>`
+          : '';
+
+        card.innerHTML = `
+          <div class="card-photo-wrapper">
+            ${photoHtml}
+            <span class="card-badge-type">${f.type || 'Firearm'}</span>
+            <span class="card-badge-rounds">${formatNumber(f.roundCount || 0)} Rds</span>
+          </div>
+          <div class="card-content">
+            <div class="card-title-row">
+              <div>
+                <span class="card-make">${f.make || ''}</span>
+                <div class="card-model">${f.model || ''}</div>
+              </div>
+              <div class="card-val">
+                <div class="card-price-primary">${formatCurrency(f.replacementValue || f.purchasePrice || 0)}</div>
+                <div class="card-price-sub">Value</div>
+              </div>
+            </div>
+
+            <div class="card-specs-row">
+              ${f.caliber ? `<span class="spec-pill">Cal: <strong>${f.caliber}</strong></span>` : ''}
+              ${f.barrelLength ? `<span class="spec-pill">Bbl: <strong>${f.barrelLength}</strong></span>` : ''}
+              ${f.action ? `<span class="spec-pill">${f.action}</span>` : ''}
+            </div>
+
+            <div class="card-serial-row">
+              <span class="card-serial-label">Serial:</span>
+              <span class="card-serial-val">${formatSerial(f.serialNumber)}</span>
+            </div>
+
+            ${accSnippet}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Detail Popout Modal
+    function openDetailModal(id) {
+      selectedFirearm = firearms.find(f => f.id === id);
+      if (!selectedFirearm) return;
+
+      document.getElementById('detailTitle').textContent = `${selectedFirearm.make} ${selectedFirearm.model}`;
+      document.getElementById('detailTypeBadge').textContent = selectedFirearm.type;
+
+      // Photos
+      const images = selectedFirearm.images || [];
+      const mainPhoto = document.getElementById('detailMainPhoto');
+      const thumbsContainer = document.getElementById('detailThumbsGallery');
+      thumbsContainer.innerHTML = '';
+
+      if (images.length > 0) {
+        currentDetailImageIdx = 0;
+        mainPhoto.src = images[0];
+        mainPhoto.style.display = 'block';
+
+        images.forEach((imgUrl, idx) => {
+          const thumb = document.createElement('img');
+          thumb.className = `detail-img-thumb ${idx === 0 ? 'active' : ''}`;
+          thumb.src = imgUrl;
+          thumb.onclick = () => {
+            currentDetailImageIdx = idx;
+            mainPhoto.src = imgUrl;
+            document.querySelectorAll('.detail-img-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+          };
+          thumbsContainer.appendChild(thumb);
+        });
+      } else {
+        mainPhoto.src = '';
+        mainPhoto.style.display = 'none';
+      }
+
+      // Fields
+      document.getElementById('detailMake').textContent = selectedFirearm.make || '-';
+      document.getElementById('detailModel').textContent = selectedFirearm.model || '-';
+      document.getElementById('detailCaliber').textContent = selectedFirearm.caliber || '-';
+      document.getElementById('detailAction').textContent = selectedFirearm.action || '-';
+      document.getElementById('detailBarrel').textContent = selectedFirearm.barrelLength || '-';
+      document.getElementById('detailLocation').textContent = selectedFirearm.location || '-';
+      document.getElementById('detailSerial').textContent = formatSerial(selectedFirearm.serialNumber);
+      document.getElementById('detailRoundCount').textContent = `${formatNumber(selectedFirearm.roundCount || 0)} Rds`;
+      document.getElementById('detailPurchasePrice').textContent = formatCurrency(selectedFirearm.purchasePrice || 0);
+      document.getElementById('detailReplacementValue').textContent = formatCurrency(selectedFirearm.replacementValue || 0);
+
+      // Notes
+      const notesEl = document.getElementById('detailNotes');
+      const notesWrap = document.getElementById('detailNotesContainer');
+      if (selectedFirearm.notes && selectedFirearm.notes.trim()) {
+        notesWrap.style.display = 'block';
+        notesEl.textContent = selectedFirearm.notes;
+      } else {
+        notesWrap.style.display = 'none';
+      }
+
+      // Accessories
+      const accTbody = document.getElementById('detailAccessoriesTbody');
+      accTbody.innerHTML = '';
+      const accessories = selectedFirearm.accessories || [];
+      let accTotal = 0;
+
+      if (accessories.length === 0) {
+        accTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-dim); padding:16px;">No mounted optics or accessories logged.</td></tr>`;
+      } else {
+        accessories.forEach(a => {
+          const val = Number(a.value) || 0;
+          accTotal += val;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${a.name || '-'}</strong></td>
+            <td><span class="tag-pill">${a.type || 'Accessory'}</span></td>
+            <td><code>${formatSerial(a.serial)}</code></td>
+            <td style="color:#34d399; font-weight:600;">${formatCurrency(val)}</td>
+          `;
+          accTbody.appendChild(tr);
+        });
+      }
+      document.getElementById('detailAccessoriesTotal').textContent = `Total: ${formatCurrency(accTotal)}`;
+
+      // Sources & Pricing Links
+      const srcTbody = document.getElementById('detailSourcesTbody');
+      srcTbody.innerHTML = '';
+      const sources = selectedFirearm.sources || [];
+
+      if (sources.length === 0) {
+        srcTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-dim); padding:16px;">No retailer sources or links logged.</td></tr>`;
+      } else {
+        sources.forEach(s => {
+          const tr = document.createElement('tr');
+          const tagsHtml = (s.tags || []).map(t => `<span class="tag-pill">${t}</span>`).join('');
+          const linkHtml = s.url ? `<a href="${s.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding:3px 8px; font-size:0.75rem;">Visit Store ↗</a>` : '-';
+          tr.innerHTML = `
+            <td><strong>${s.name || '-'}</strong></td>
+            <td style="color:#34d399; font-weight:600;">${formatCurrency(s.price || 0)}</td>
+            <td>${tagsHtml || '-'}</td>
+            <td>${linkHtml}</td>
+          `;
+          srcTbody.appendChild(tr);
+        });
+      }
+
+      // Maintenance Logs
+      const maintTbody = document.getElementById('detailMaintenanceTbody');
+      maintTbody.innerHTML = '';
+      const logs = selectedFirearm.maintenanceLogs || [];
+
+      if (logs.length === 0) {
+        maintTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-dim); padding:16px;">No maintenance or range sessions recorded.</td></tr>`;
+      } else {
+        logs.forEach(l => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${l.date || '-'}</td>
+            <td><strong>${l.type || '-'}</strong></td>
+            <td>${l.roundsFired ? `${formatNumber(l.roundsFired)} Rds` : '-'}</td>
+            <td style="color:var(--text-muted);">${l.notes || '-'}</td>
+          `;
+          maintTbody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('detailModal').classList.add('active');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.remove('active');
+    }
+
+    // Toggle Privacy Mask
+    document.getElementById('toggleMaskBtn').onclick = () => {
+      maskSerials = !maskSerials;
+      const btnText = document.getElementById('maskBtnText');
+      if (maskSerials) {
+        btnText.textContent = 'Mask Serials';
+        showToast('Privacy Mask ON: Serial numbers concealed');
+      } else {
+        btnText.textContent = 'Unmask Serials';
+        showToast('Privacy Mask OFF: Serial numbers displayed');
+      }
+      renderFirearmsGrid();
+      if (selectedFirearm && document.getElementById('detailModal').classList.contains('active')) {
+        openDetailModal(selectedFirearm.id);
+      }
+    };
+
+    // Filter Chips
+    document.querySelectorAll('.filter-bar .chip').forEach(chip => {
+      chip.onclick = () => {
+        document.querySelectorAll('.filter-bar .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentFilter = chip.dataset.type;
+        renderFirearmsGrid();
+      };
+    });
+
+    // Search Input
+    document.getElementById('searchInput').oninput = () => renderFirearmsGrid();
+
+    // Snapshot Button
+    document.getElementById('snapshotBtn').onclick = async () => {
+      try {
+        const res = await fetch('/api/snapshot', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Snapshot Created: ${data.snapshot}`);
+        }
+      } catch (err) {
+        showToast('Snapshot failed');
+      }
+    };
+
+    // Insurance Summary Modal
+    document.getElementById('insuranceBtn').onclick = () => {
+      const modal = document.getElementById('insuranceModal');
+      document.getElementById('insuranceReportDate').textContent = `Generated on ${new Date().toLocaleString()}`;
+
+      let totalCost = 0;
+      let totalVal = 0;
+      let totalAcc = 0;
+
+      const tbody = document.getElementById('insuranceScheduleTbody');
+      tbody.innerHTML = '';
+
+      firearms.forEach(f => {
+        const cost = Number(f.purchasePrice) || 0;
+        const repVal = Number(f.replacementValue) || 0;
+        totalCost += cost;
+        totalVal += repVal;
+
+        (f.accessories || []).forEach(a => totalAcc += (Number(a.value) || 0));
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="tag-pill">${f.type || 'Pistol'}</span></td>
+          <td><strong>${f.make} ${f.model}</strong></td>
+          <td>${f.caliber || '-'}</td>
+          <td><code>${formatSerial(f.serialNumber)}</code></td>
+          <td>${f.location || '-'}</td>
+          <td>${formatCurrency(cost)}</td>
+          <td style="color:#34d399; font-weight:600;">${formatCurrency(repVal)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('insRepCount').textContent = firearms.length;
+      document.getElementById('insRepCost').textContent = formatCurrency(totalCost);
+      document.getElementById('insRepAccVal').textContent = formatCurrency(totalAcc);
+      document.getElementById('insRepTotalVal').textContent = formatCurrency(totalVal + totalAcc);
+
+      modal.classList.add('active');
+    };
+
+    function closeInsuranceModal() {
+      document.getElementById('insuranceModal').classList.remove('active');
+    }
+
+    // Comparison Matrix Modal
+    document.getElementById('compareGalleryBtn').onclick = () => {
+      const container = document.getElementById('compareMatrixContainer');
+      container.innerHTML = '';
+
+      firearms.forEach(f => {
+        const col = document.createElement('div');
+        col.className = 'compare-column';
+
+        const photoUrl = (f.images && f.images.length > 0) ? f.images[0] : null;
+        const photoHtml = photoUrl
+          ? `<img class="compare-img" src="${photoUrl}" alt="${f.make}">`
+          : `<div class="no-photo-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><span>No Photo</span></div>`;
+
+        col.innerHTML = `
+          <div class="compare-img-wrap">${photoHtml}</div>
+          <div class="compare-header">
+            <span class="card-make">${f.make}</span>
+            <div style="font-size:1.05rem; font-weight:700;">${f.model}</div>
+            <div style="font-size:1rem; font-weight:700; color:#34d399; margin-top:4px;">${formatCurrency(f.replacementValue || f.purchasePrice || 0)}</div>
+          </div>
+          <div class="compare-rows">
+            <div class="compare-row-item"><span style="color:var(--text-dim);">Classification:</span> <strong>${f.type}</strong></div>
+            <div class="compare-row-item"><span style="color:var(--text-dim);">Caliber:</span> <strong>${f.caliber || '-'}</strong></div>
+            <div class="compare-row-item"><span style="color:var(--text-dim);">Barrel Length:</span> <strong>${f.barrelLength || '-'}</strong></div>
+            <div class="compare-row-item"><span style="color:var(--text-dim);">Action:</span> <strong>${f.action || '-'}</strong></div>
+            <div class="compare-row-item"><span style="color:var(--text-dim);">Rounds Fired:</span> <strong>${formatNumber(f.roundCount || 0)} Rds</strong></div>
+            <div class="compare-row-item"><span style="color:var(--text-dim);">Mounted Optics:</span> <strong>${(f.accessories || []).length} items</strong></div>
+          </div>
+        `;
+        container.appendChild(col);
+      });
+
+      document.getElementById('compareModal').classList.add('active');
+    };
+
+    function closeCompareModal() {
+      document.getElementById('compareModal').classList.remove('active');
+    }
+
+    // Add / Edit Form Operations
+    let formImages = [];
+    let formAccessories = [];
+    let formSources = [];
+    let formMaintenance = [];
+
+    document.getElementById('addFirearmBtn').onclick = () => openFormModal(null);
+    document.getElementById('editDetailBtn').onclick = () => {
+      closeDetailModal();
+      openFormModal(selectedFirearm);
+    };
+
+    function openFormModal(item) {
+      document.getElementById('formFirearmId').value = item ? item.id : '';
+      document.getElementById('formModalTitle').textContent = item ? `Edit ${item.make} ${item.model}` : 'Add New Firearm';
+
+      document.getElementById('formType').value = item ? item.type : 'Pistol';
+      document.getElementById('formMake').value = item ? item.make : '';
+      document.getElementById('formModel').value = item ? item.model : '';
+      document.getElementById('formCaliber').value = item ? item.caliber : '';
+      document.getElementById('formAction').value = item ? item.action : '';
+      document.getElementById('formBarrel').value = item ? item.barrelLength : '';
+      document.getElementById('formSerial').value = item ? item.serialNumber : '';
+      document.getElementById('formLocation').value = item ? item.location : '';
+      document.getElementById('formRounds').value = item ? (item.roundCount || 0) : '';
+      document.getElementById('formPurchasePrice').value = item ? (item.purchasePrice || '') : '';
+      document.getElementById('formReplacementValue').value = item ? (item.replacementValue || '') : '';
+      document.getElementById('formPurchaseDate').value = item ? (item.purchaseDate || '') : '';
+      document.getElementById('formNotes').value = item ? (item.notes || '') : '';
+
+      formImages = item ? [...(item.images || [])] : [];
+      formAccessories = item ? JSON.parse(JSON.stringify(item.accessories || [])) : [];
+      formSources = item ? JSON.parse(JSON.stringify(item.sources || [])) : [];
+      formMaintenance = item ? JSON.parse(JSON.stringify(item.maintenanceLogs || [])) : [];
+
+      renderFormPhotos();
+      renderFormAccessories();
+      renderFormSources();
+      renderFormMaintenance();
+
+      document.getElementById('formModal').classList.add('active');
+    }
+
+    function closeFormModal() {
+      document.getElementById('formModal').classList.remove('active');
+    }
+
+    // Photo preview & upload
+    function renderFormPhotos() {
+      const container = document.getElementById('formPhotosPreview');
+      container.innerHTML = '';
+      formImages.forEach((img, idx) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:relative; width:90px; height:60px; border-radius:8px; overflow:hidden; border:1px solid #334155;';
+        wrap.innerHTML = `
+          <img src="${img}" style="width:100%; height:100%; object-fit:cover;">
+          <button type="button" onclick="removePhoto(${idx})" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.7); border:none; color:#f87171; border-radius:4px; cursor:pointer; padding:2px;">✕</button>
+        `;
+        container.appendChild(wrap);
+      });
+    }
+
+    function removePhoto(idx) {
+      formImages.splice(idx, 1);
+      renderFormPhotos();
+    }
+
+    function addPhotoUrl() {
+      const input = document.getElementById('formPhotoUrlInput');
+      const url = input.value.trim();
+      if (url) {
+        formImages.push(url);
+        input.value = '';
+        renderFormPhotos();
+      }
+    }
+
+    async function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        try {
+          const res = await fetch('/api/upload-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: reader.result })
+          });
+          const data = await res.json();
+          if (data.success) {
+            formImages.push(data.url);
+            renderFormPhotos();
+            showToast('Photo uploaded successfully');
+          }
+        } catch (err) {
+          showToast('Image upload failed');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Accessory rows
+    function renderFormAccessories() {
+      const list = document.getElementById('formAccessoriesList');
+      list.innerHTML = '';
+      formAccessories.forEach((acc, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:8px; align-items:center;';
+        row.innerHTML = `
+          <input type="text" class="form-control" placeholder="Name / Model" value="${acc.name || ''}" onchange="formAccessories[${idx}].name = this.value" style="flex:2;">
+          <input type="text" class="form-control" placeholder="Type (Optic, Light, etc)" value="${acc.type || ''}" onchange="formAccessories[${idx}].type = this.value" style="flex:1;">
+          <input type="text" class="form-control" placeholder="Serial #" value="${acc.serial || ''}" onchange="formAccessories[${idx}].serial = this.value" style="flex:1;">
+          <input type="number" step="0.01" class="form-control" placeholder="Value ($)" value="${acc.value || ''}" onchange="formAccessories[${idx}].value = parseFloat(this.value) || 0" style="width:110px;">
+          <button type="button" class="btn btn-ghost" onclick="removeAccessory(${idx})" style="color:#fb7185;">✕</button>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function addAccessoryRow() {
+      formAccessories.push({ name: '', type: 'Optic', serial: '', value: 0 });
+      renderFormAccessories();
+    }
+
+    function removeAccessory(idx) {
+      formAccessories.splice(idx, 1);
+      renderFormAccessories();
+    }
+
+    // Sources rows
+    function renderFormSources() {
+      const list = document.getElementById('formSourcesList');
+      list.innerHTML = '';
+      formSources.forEach((src, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:8px; align-items:center;';
+        const tagsJoined = (src.tags || []).join(', ');
+        row.innerHTML = `
+          <input type="text" class="form-control" placeholder="Dealer / Store Name" value="${src.name || ''}" onchange="formSources[${idx}].name = this.value" style="flex:2;">
+          <input type="number" step="0.01" class="form-control" placeholder="Price ($)" value="${src.price || ''}" onchange="formSources[${idx}].price = parseFloat(this.value) || 0" style="width:110px;">
+          <input type="text" class="form-control" placeholder="Tags (comma separated)" value="${tagsJoined}" onchange="formSources[${idx}].tags = this.value.split(',').map(t => t.trim()).filter(Boolean)" style="flex:1.5;">
+          <input type="url" class="form-control" placeholder="Store Link URL" value="${src.url || ''}" onchange="formSources[${idx}].url = this.value" style="flex:2;">
+          <button type="button" class="btn btn-ghost" onclick="removeSource(${idx})" style="color:#fb7185;">✕</button>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function addSourceRow() {
+      formSources.push({ name: '', price: 0, tags: [], url: '' });
+      renderFormSources();
+    }
+
+    function removeSource(idx) {
+      formSources.splice(idx, 1);
+      renderFormSources();
+    }
+
+    // Maintenance rows
+    function renderFormMaintenance() {
+      const list = document.getElementById('formMaintenanceList');
+      list.innerHTML = '';
+      formMaintenance.forEach((m, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:8px; align-items:center;';
+        row.innerHTML = `
+          <input type="date" class="form-control" value="${m.date || ''}" onchange="formMaintenance[${idx}].date = this.value" style="width:140px;">
+          <input type="text" class="form-control" placeholder="Type (Cleaning, Range, Zero)" value="${m.type || ''}" onchange="formMaintenance[${idx}].type = this.value" style="flex:1;">
+          <input type="number" class="form-control" placeholder="Rds" value="${m.roundsFired || ''}" onchange="formMaintenance[${idx}].roundsFired = parseInt(this.value) || 0" style="width:90px;">
+          <input type="text" class="form-control" placeholder="Notes" value="${m.notes || ''}" onchange="formMaintenance[${idx}].notes = this.value" style="flex:2;">
+          <button type="button" class="btn btn-ghost" onclick="removeMaintenance(${idx})" style="color:#fb7185;">✕</button>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function addMaintenanceRow() {
+      const today = new Date().toISOString().split('T')[0];
+      formMaintenance.push({ date: today, type: 'Cleaning', roundsFired: 0, notes: '' });
+      renderFormMaintenance();
+    }
+
+    function removeMaintenance(idx) {
+      formMaintenance.splice(idx, 1);
+      renderFormMaintenance();
+    }
+
+    // Save Firearm to API
+    async function saveFirearm() {
+      const id = document.getElementById('formFirearmId').value;
+      const payload = {
+        type: document.getElementById('formType').value,
+        make: document.getElementById('formMake').value.trim(),
+        model: document.getElementById('formModel').value.trim(),
+        caliber: document.getElementById('formCaliber').value.trim(),
+        action: document.getElementById('formAction').value.trim(),
+        barrelLength: document.getElementById('formBarrel').value.trim(),
+        serialNumber: document.getElementById('formSerial').value.trim(),
+        location: document.getElementById('formLocation').value.trim(),
+        roundCount: parseInt(document.getElementById('formRounds').value) || 0,
+        purchasePrice: parseFloat(document.getElementById('formPurchasePrice').value) || 0,
+        replacementValue: parseFloat(document.getElementById('formReplacementValue').value) || 0,
+        purchaseDate: document.getElementById('formPurchaseDate').value,
+        notes: document.getElementById('formNotes').value.trim(),
+        images: formImages,
+        accessories: formAccessories.filter(a => a.name && a.name.trim()),
+        sources: formSources.filter(s => s.name && s.name.trim()),
+        maintenanceLogs: formMaintenance.filter(m => m.type && m.type.trim())
+      };
+
+      const url = id ? `/api/firearms/${id}` : '/api/firearms';
+      const method = id ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(id ? 'Firearm updated successfully' : 'New firearm recorded in vault');
+          closeFormModal();
+          await fetchFirearms();
+          if (id) openDetailModal(id);
+        } else {
+          showToast('Failed to save firearm');
+        }
+      } catch (err) {
+        showToast('Error saving record');
+      }
+    }
+
+    // Delete Firearm
+    document.getElementById('deleteDetailBtn').onclick = async () => {
+      if (!selectedFirearm) return;
+      if (!confirm(`Are you sure you want to delete ${selectedFirearm.make} ${selectedFirearm.model} from your armory?`)) return;
+
+      try {
+        const res = await fetch(`/api/firearms/${selectedFirearm.id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Firearm removed from inventory');
+          closeDetailModal();
+          fetchFirearms();
+        }
+      } catch (err) {
+        showToast('Failed to delete firearm');
+      }
+    };
+
+    // Close Modals on Close Buttons & Backdrop click
+    document.getElementById('closeDetailModalBtn').onclick = closeDetailModal;
+    document.getElementById('closeFormModalBtn').onclick = closeFormModal;
+
+    window.onclick = (e) => {
+      if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
+      }
+    };
+
+    // Initialize
+    fetchFirearms();
+  </script>
+</body>
+</html>
