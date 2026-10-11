@@ -698,8 +698,25 @@
       </div>
       <div class="modal-body">
         <!-- Photo Gallery -->
-        <div class="detail-main-img-wrap">
+        <div class="detail-main-img-wrap" style="position:relative;">
           <img id="detailMainPhoto" class="detail-main-img" src="" alt="Firearm Main View">
+          <!-- Floating Image Tools (Rotate, Set as Main Cover Photo, Delete) -->
+          <div id="detailPhotoToolbar" style="position:absolute; bottom:12px; right:12px; display:flex; gap:8px; background:rgba(10,15,24,0.85); backdrop-filter:blur(6px); padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15);">
+            <button type="button" class="btn btn-secondary" onclick="rotateCurrentDetailPhoto(-90)" title="Rotate Counter-Clockwise 90°" style="padding:4px 8px; font-size:0.75rem;">
+              <svg viewBox="0 0 24 24" style="width:14px; height:14px;"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.51-1.67 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.8-.88-1.6-1.01-2.47zm1.02 5.47l-1.41 1.41C7.8 21.03 10.27 22 13 22c5.52 0 10-4.48 10-10S18.52 2 13 2c-3.14 0-5.91 1.45-7.72 3.72L3 3v6h6L7.11 8.53z"/></svg>
+              ⟲ -90°
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="rotateCurrentDetailPhoto(90)" title="Rotate Clockwise 90°" style="padding:4px 8px; font-size:0.75rem;">
+              <svg viewBox="0 0 24 24" style="width:14px; height:14px;"><path d="M15.55 5.55L11 1v3.07C6.98 4.58 4 8.01 4 12.18c0 2.21.84 4.23 2.22 5.75L7.66 16.5C6.63 15.34 6 13.84 6 12.18c0-3.31 2.39-6.07 5.54-6.62V9l4.55-4.55zM17.78 6.25l-1.44 1.43c1.03 1.16 1.66 2.66 1.66 4.32 0 3.31-2.39 6.07-5.54 6.62v-3.44l-4.55 4.55 4.55 4.55v-3.07c4.02-.51 7-3.94 7-8.11 0-2.21-.84-4.23-2.22-5.75z"/></svg>
+              ⟳ +90°
+            </button>
+            <button type="button" class="btn btn-primary" id="setMainCoverBtn" onclick="setAsMainPhoto(currentDetailImageIdx)" title="Make this photo the main cover photo for cards & comparisons" style="padding:4px 10px; font-size:0.75rem;">
+              ★ Set as Main
+            </button>
+            <button type="button" class="btn btn-danger" onclick="deleteCurrentDetailPhoto()" title="Remove this photo from firearm" style="padding:4px 8px; font-size:0.75rem;">
+              ✕
+            </button>
+          </div>
         </div>
         <div class="detail-gallery" id="detailThumbsGallery"></div>
 
@@ -1225,21 +1242,32 @@
         mainPhoto.src = images[0];
         mainPhoto.style.display = 'block';
 
+        const toolbar = document.getElementById('detailPhotoToolbar');
+        if (toolbar) toolbar.style.display = 'flex';
+        updateSetMainBtnState();
+
         images.forEach((imgUrl, idx) => {
-          const thumb = document.createElement('img');
-          thumb.className = `detail-img-thumb ${idx === 0 ? 'active' : ''}`;
-          thumb.src = imgUrl;
+          const thumb = document.createElement('div');
+          thumb.style.cssText = 'position:relative; display:inline-block; flex-shrink:0;';
+          const isMain = (idx === 0);
+          thumb.innerHTML = `
+            <img class="detail-img-thumb ${idx === 0 ? 'active' : ''}" src="${imgUrl}" alt="Thumbnail ${idx}">
+            ${isMain ? `<span style="position:absolute; top:4px; left:4px; background:rgba(16,185,129,0.9); color:#fff; font-size:0.6rem; font-weight:700; padding:1px 4px; border-radius:3px; text-transform:uppercase;">Main</span>` : ''}
+          `;
           thumb.onclick = () => {
             currentDetailImageIdx = idx;
             mainPhoto.src = imgUrl;
             document.querySelectorAll('.detail-img-thumb').forEach(t => t.classList.remove('active'));
-            thumb.classList.add('active');
+            thumb.querySelector('img').classList.add('active');
+            updateSetMainBtnState();
           };
           thumbsContainer.appendChild(thumb);
         });
       } else {
         mainPhoto.src = '';
         mainPhoto.style.display = 'none';
+        const toolbar = document.getElementById('detailPhotoToolbar');
+        if (toolbar) toolbar.style.display = 'none';
       }
 
       // Fields
@@ -1512,19 +1540,87 @@
       document.getElementById('formModal').classList.remove('active');
     }
 
-    // Photo preview & upload
+    // Photo preview & upload in form
     function renderFormPhotos() {
       const container = document.getElementById('formPhotosPreview');
       container.innerHTML = '';
       formImages.forEach((img, idx) => {
         const wrap = document.createElement('div');
-        wrap.style.cssText = 'position:relative; width:90px; height:60px; border-radius:8px; overflow:hidden; border:1px solid #334155;';
+        const isMain = (idx === 0);
+        wrap.style.cssText = `position:relative; width:120px; height:85px; border-radius:8px; overflow:hidden; border:2px solid ${isMain ? '#10b981' : '#334155'}; background:#090e17; display:flex; flex-direction:column;`;
         wrap.innerHTML = `
           <img src="${img}" style="width:100%; height:100%; object-fit:cover;">
-          <button type="button" onclick="removePhoto(${idx})" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.7); border:none; color:#f87171; border-radius:4px; cursor:pointer; padding:2px;">✕</button>
+          ${isMain ? `<span style="position:absolute; top:3px; left:3px; background:rgba(16,185,129,0.9); color:#fff; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-transform:uppercase;">Main</span>` : ''}
+          <div style="position:absolute; bottom:2px; left:2px; right:2px; display:flex; justify-content:space-between; gap:2px; background:rgba(4,8,15,0.8); border-radius:4px; padding:2px 4px;">
+            <button type="button" onclick="rotateFormPhoto(${idx})" title="Rotate 90°" style="background:transparent; border:none; color:#93c5fd; cursor:pointer; font-size:0.75rem;">⟳</button>
+            ${!isMain ? `<button type="button" onclick="setFormMainPhoto(${idx})" title="Set as Main Cover" style="background:transparent; border:none; color:#34d399; cursor:pointer; font-size:0.65rem; font-weight:700;">★ Main</button>` : ''}
+            <button type="button" onclick="removePhoto(${idx})" title="Delete" style="background:transparent; border:none; color:#f87171; cursor:pointer; font-size:0.75rem;">✕</button>
+          </div>
         `;
         container.appendChild(wrap);
       });
+    }
+
+    // Rotate an image by 90 degrees using an HTML5 Canvas and save updated data
+    function rotateImage(imageSrc, degrees = 90) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          // If rotating 90 or 270 degrees, swap width and height
+          if (Math.abs(degrees) === 90 || Math.abs(degrees) === 270) {
+            canvas.width = img.naturalHeight || img.height;
+            canvas.height = img.naturalWidth || img.width;
+          } else {
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+          }
+
+          // Translate and rotate around center
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((degrees * Math.PI) / 180);
+          ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+
+          resolve(canvas.toDataURL('image/jpeg', 0.9));
+        };
+        img.onerror = reject;
+        img.src = imageSrc;
+      });
+    }
+
+    async function rotateFormPhoto(idx) {
+      showToast('Rotating photo 90°...');
+      try {
+        const rotatedData = await rotateImage(formImages[idx], 90);
+        // Upload rotated image to get public URL
+        const res = await fetch('/api/upload-photo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: rotatedData })
+        });
+        const data = await res.json();
+        if (data.success) {
+          formImages[idx] = data.url;
+          renderFormPhotos();
+          showToast('Photo rotated and saved');
+        } else {
+          formImages[idx] = rotatedData;
+          renderFormPhotos();
+        }
+      } catch (err) {
+        showToast('Failed to rotate photo');
+      }
+    }
+
+    function setFormMainPhoto(idx) {
+      if (idx <= 0 || idx >= formImages.length) return;
+      const selected = formImages.splice(idx, 1)[0];
+      formImages.unshift(selected); // Put at index 0
+      renderFormPhotos();
+      showToast('Set as main cover photo');
     }
 
     function removePhoto(idx) {
@@ -1803,6 +1899,104 @@
         }
       } else {
         showToast('Photo upload failed');
+      }
+    }
+
+    // Update Set as Main button state in Detail View
+    function updateSetMainBtnState() {
+      const btn = document.getElementById('setMainCoverBtn');
+      if (!btn) return;
+      if (currentDetailImageIdx === 0) {
+        btn.textContent = '★ Main Cover';
+        btn.style.opacity = '0.6';
+        btn.style.pointerEvents = 'none';
+      } else {
+        btn.textContent = '★ Set as Main';
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      }
+    }
+
+    // Rotate the currently viewed photo in Detail Popout
+    async function rotateCurrentDetailPhoto(degrees = 90) {
+      if (!selectedFirearm || !selectedFirearm.images || selectedFirearm.images.length === 0) return;
+      const targetImg = selectedFirearm.images[currentDetailImageIdx];
+      if (!targetImg) return;
+
+      showToast(`Rotating photo ${degrees > 0 ? '+90°' : '-90°'}...`);
+
+      try {
+        const rotatedData = await rotateImage(targetImg, degrees);
+        const res = await fetch('/api/upload-photo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: rotatedData })
+        });
+        const data = await res.json();
+        if (data.success) {
+          selectedFirearm.images[currentDetailImageIdx] = data.url;
+
+          // Update backend record
+          await fetch(`/api/firearms/${selectedFirearm.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ images: selectedFirearm.images })
+          });
+
+          showToast('Photo rotated and saved');
+          await fetchFirearms();
+          openDetailModal(selectedFirearm.id);
+        }
+      } catch (err) {
+        console.error('Rotation error:', err);
+        showToast('Failed to rotate photo');
+      }
+    }
+
+    // Set currently viewed photo as Main Cover Photo (Index 0)
+    async function setAsMainPhoto(idx) {
+      if (!selectedFirearm || !selectedFirearm.images || idx === 0 || idx >= selectedFirearm.images.length) return;
+
+      const chosen = selectedFirearm.images.splice(idx, 1)[0];
+      selectedFirearm.images.unshift(chosen); // Put chosen at index 0
+
+      try {
+        const res = await fetch(`/api/firearms/${selectedFirearm.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ images: selectedFirearm.images })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Updated main cover photo');
+          await fetchFirearms();
+          openDetailModal(selectedFirearm.id);
+        }
+      } catch (err) {
+        showToast('Failed to update cover photo');
+      }
+    }
+
+    // Delete currently viewed photo in Detail Popout
+    async function deleteCurrentDetailPhoto() {
+      if (!selectedFirearm || !selectedFirearm.images || selectedFirearm.images.length === 0) return;
+      if (!confirm('Remove this photo from firearm gallery?')) return;
+
+      selectedFirearm.images.splice(currentDetailImageIdx, 1);
+      try {
+        const res = await fetch(`/api/firearms/${selectedFirearm.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ images: selectedFirearm.images })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Photo removed');
+          await fetchFirearms();
+          openDetailModal(selectedFirearm.id);
+        }
+      } catch (err) {
+        showToast('Failed to remove photo');
       }
     }
 
