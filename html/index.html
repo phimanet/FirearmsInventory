@@ -415,6 +415,13 @@
       color: var(--text-muted);
     }
     .spec-pill strong { color: var(--text-main); font-weight: 600; }
+    .spec-pill-serial {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.03em;
+    }
+    .spec-pill-serial strong {
+      color: #93c5fd;
+    }
 
     .card-serial-row {
       display: flex;
@@ -2248,11 +2255,7 @@
             <div class="card-specs-row">
               ${f.barrelLength ? `<span class="spec-pill">Bbl: <strong>${f.barrelLength}</strong></span>` : ''}
               ${f.action ? `<span class="spec-pill">${f.action}</span>` : ''}
-            </div>
-
-            <div class="card-serial-row">
-              <span class="card-serial-label">Serial:</span>
-              <span class="card-serial-val">${formatSerial(f.serialNumber)}</span>
+              <span class="spec-pill spec-pill-serial">SN: <strong>${formatSerial(f.serialNumber)}</strong></span>
             </div>
 
             ${accSnippet}
