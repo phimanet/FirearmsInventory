@@ -419,8 +419,152 @@
       align-items: center;
       justify-content: center;
       position: relative;
+      cursor: zoom-in;
     }
-    .detail-main-img { width: 100%; height: 100%; object-fit: contain; }
+    .detail-main-img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.2s ease; }
+    .detail-main-img-wrap:hover .detail-main-img { transform: scale(1.02); }
+
+    /* Interactive Photo Zoom Lightbox Modal */
+    .photo-zoom-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 6, 12, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      touch-action: none;
+    }
+    .photo-zoom-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .photo-zoom-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(10, 15, 26, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 510;
+      user-select: none;
+    }
+    .photo-zoom-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .photo-zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 4px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .photo-zoom-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #cbd5e1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .photo-zoom-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    .photo-zoom-btn:active {
+      transform: scale(0.96);
+    }
+    .photo-zoom-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+    .photo-zoom-viewport {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      user-select: none;
+    }
+    .photo-zoom-viewport.dragging {
+      cursor: grabbing;
+    }
+    .photo-zoom-img {
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+      transform-origin: center center;
+      transition: transform 0.05s ease-out;
+      will-change: transform;
+      pointer-events: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      border-radius: 6px;
+    }
+    .photo-zoom-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 520;
+      transition: all 0.15s ease;
+      backdrop-filter: blur(6px);
+    }
+    .photo-zoom-nav-btn:hover {
+      background: rgba(16, 185, 129, 0.85);
+      border-color: rgba(16, 185, 129, 1);
+      transform: translateY(-50%) scale(1.08);
+    }
+    .photo-zoom-nav-btn.prev { left: 20px; }
+    .photo-zoom-nav-btn.next { right: 20px; }
+    .photo-zoom-nav-btn svg { width: 22px; height: 22px; fill: currentColor; }
+    .photo-zoom-hint {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 15, 26, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+      padding: 6px 16px;
+      font-size: 0.76rem;
+      color: #94a3b8;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+      z-index: 510;
+      white-space: nowrap;
+    }
 
     .detail-grid {
       display: grid;
@@ -698,10 +842,14 @@
       </div>
       <div class="modal-body">
         <!-- Photo Gallery -->
-        <div class="detail-main-img-wrap" style="position:relative;">
+        <div class="detail-main-img-wrap" style="position:relative;" onclick="openPhotoZoomModal()" title="Click to view & zoom photo in high resolution">
           <img id="detailMainPhoto" class="detail-main-img" src="" alt="Firearm Main View">
-          <!-- Floating Image Tools (Rotate, Set as Main Cover Photo, Delete) -->
-          <div id="detailPhotoToolbar" style="position:absolute; bottom:12px; right:12px; display:flex; gap:8px; background:rgba(10,15,24,0.85); backdrop-filter:blur(6px); padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15);">
+          <!-- Floating Image Tools (Zoom, Rotate, Set as Main Cover Photo, Delete) -->
+          <div id="detailPhotoToolbar" style="position:absolute; bottom:12px; right:12px; display:flex; gap:8px; background:rgba(10,15,24,0.85); backdrop-filter:blur(6px); padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15);" onclick="event.stopPropagation();">
+            <button type="button" class="btn btn-primary" onclick="openPhotoZoomModal()" title="Inspect Photo in High-Res Zoom" style="padding:4px 10px; font-size:0.75rem; background:#0284c7; border-color:#38bdf8;">
+              <svg viewBox="0 0 24 24" style="width:14px; height:14px;"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zm.5-7H9v2H7v1h2v2h1v-2h2V9h-2V7z"/></svg>
+              🔍 Zoom
+            </button>
             <button type="button" class="btn btn-secondary" onclick="rotateCurrentDetailPhoto(-90)" title="Rotate Counter-Clockwise 90°" style="padding:4px 8px; font-size:0.75rem;">
               <svg viewBox="0 0 24 24" style="width:14px; height:14px;"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.51-1.67 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.8-.88-1.6-1.01-2.47zm1.02 5.47l-1.41 1.41C7.8 21.03 10.27 22 13 22c5.52 0 10-4.48 10-10S18.52 2 13 2c-3.14 0-5.91 1.45-7.72 3.72L3 3v6h6L7.11 8.53z"/></svg>
               ⟲ -90°
@@ -1147,6 +1295,51 @@
             </details>
           </div>
         </div>
+      </div>
+  </div>
+
+  <!-- Interactive High-Res Photo Zoom Modal -->
+  <div class="photo-zoom-overlay" id="photoZoomModal" tabindex="-1">
+    <div class="photo-zoom-header">
+      <div class="photo-zoom-title">
+        <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:#38bdf8;"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zm.5-7H9v2H7v1h2v2h1v-2h2V9h-2V7z"/></svg>
+        <span id="photoZoomTitleText">Photo Zoom & Inspection</span>
+        <span class="badge-tag" id="photoZoomCounter" style="background:rgba(56,189,248,0.2); color:#38bdf8; font-weight:700;">1 / 1</span>
+      </div>
+      <div class="photo-zoom-controls">
+        <button type="button" class="photo-zoom-btn" onclick="zoomIn()" title="Zoom In (+)">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          In
+        </button>
+        <button type="button" class="photo-zoom-btn" onclick="zoomOut()" title="Zoom Out (-)">
+          <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+          Out
+        </button>
+        <button type="button" class="photo-zoom-btn" id="photoZoomLevelBtn" onclick="resetZoom()" title="Reset to Fit (0 or Double-Click)">
+          ↺ 100%
+        </button>
+        <button type="button" class="photo-zoom-btn" onclick="rotateZoomModalPhoto(90)" title="Rotate Clockwise 90°">
+          <svg viewBox="0 0 24 24"><path d="M15.55 5.55L11 1v3.07C6.98 4.58 4 8.01 4 12.18c0 2.21.84 4.23 2.22 5.75L7.66 16.5C6.63 15.34 6 13.84 6 12.18c0-3.31 2.39-6.07 5.54-6.62V9l4.55-4.55zM17.78 6.25l-1.44 1.43c1.03 1.16 1.66 2.66 1.66 4.32 0 3.31-2.39 6.07-5.54 6.62v-3.44l-4.55 4.55 4.55 4.55v-3.07c4.02-.51 7-3.94 7-8.11 0-2.21-.84-4.23-2.22-5.75z"/></svg>
+          ⟳ Rotate
+        </button>
+        <button type="button" class="photo-zoom-btn" onclick="closePhotoZoomModal()" title="Close Viewer (Esc)" style="color:#fb7185; margin-left:6px;">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- Interactive Viewport -->
+    <div class="photo-zoom-viewport" id="photoZoomViewport">
+      <button type="button" class="photo-zoom-nav-btn prev" id="photoZoomPrevBtn" onclick="navigateZoomPhoto(-1)" title="Previous Photo (Left Arrow)">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+      <img id="photoZoomImg" class="photo-zoom-img" src="" alt="Firearm Zoom Detail" draggable="false">
+      <button type="button" class="photo-zoom-nav-btn next" id="photoZoomNextBtn" onclick="navigateZoomPhoto(1)" title="Next Photo (Right Arrow)">
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
+      <div class="photo-zoom-hint">
+        💡 Scroll wheel or pinch to zoom • Drag to pan • Double-click to toggle 2.5x • Esc to exit
       </div>
     </div>
   </div>
@@ -2610,6 +2803,251 @@
         showToast('Failed to delete firearm');
       }
     };
+
+    // ----------------------------------------------------------------------
+    // Interactive Photo Zoom & Inspection Lightbox
+    // ----------------------------------------------------------------------
+    let zoomState = {
+      scale: 1,
+      minScale: 0.5,
+      maxScale: 6,
+      panX: 0,
+      panY: 0,
+      rotation: 0,
+      isDragging: false,
+      startX: 0,
+      startY: 0,
+      activeTouchDist: 0,
+      touchStartScale: 1
+    };
+
+    function updateZoomTransform() {
+      const img = document.getElementById('photoZoomImg');
+      const levelBtn = document.getElementById('photoZoomLevelBtn');
+      if (!img) return;
+
+      img.style.transform = `translate(${zoomState.panX}px, ${zoomState.panY}px) scale(${zoomState.scale}) rotate(${zoomState.rotation}deg)`;
+      if (levelBtn) {
+        levelBtn.textContent = `↺ ${Math.round(zoomState.scale * 100)}%`;
+      }
+    }
+
+    function resetZoom() {
+      zoomState.scale = 1;
+      zoomState.panX = 0;
+      zoomState.panY = 0;
+      updateZoomTransform();
+    }
+
+    function zoomIn(factor = 1.3) {
+      zoomState.scale = Math.min(zoomState.maxScale, zoomState.scale * factor);
+      updateZoomTransform();
+    }
+
+    function zoomOut(factor = 1.3) {
+      zoomState.scale = Math.max(zoomState.minScale, zoomState.scale / factor);
+      updateZoomTransform();
+    }
+
+    function openPhotoZoomModal(initialIdx = null) {
+      const images = (selectedFirearm && selectedFirearm.images) ? selectedFirearm.images : [];
+      if (images.length === 0) return;
+
+      if (initialIdx !== null && initialIdx >= 0 && initialIdx < images.length) {
+        currentDetailImageIdx = initialIdx;
+      }
+
+      const modal = document.getElementById('photoZoomModal');
+      const img = document.getElementById('photoZoomImg');
+      const titleEl = document.getElementById('photoZoomTitleText');
+      const counterEl = document.getElementById('photoZoomCounter');
+      const prevBtn = document.getElementById('photoZoomPrevBtn');
+      const nextBtn = document.getElementById('photoZoomNextBtn');
+
+      if (!modal || !img) return;
+
+      // Reset zoom position and orientation
+      zoomState.scale = 1;
+      zoomState.panX = 0;
+      zoomState.panY = 0;
+      zoomState.rotation = 0;
+
+      img.src = images[currentDetailImageIdx];
+      if (titleEl && selectedFirearm) {
+        titleEl.textContent = `${selectedFirearm.make} ${selectedFirearm.model}`;
+      }
+      if (counterEl) {
+        counterEl.textContent = `${currentDetailImageIdx + 1} / ${images.length}`;
+      }
+
+      // Prev/Next arrows visibility
+      if (prevBtn) prevBtn.style.display = images.length > 1 ? 'flex' : 'none';
+      if (nextBtn) nextBtn.style.display = images.length > 1 ? 'flex' : 'none';
+
+      updateZoomTransform();
+      modal.classList.add('active');
+      modal.focus();
+    }
+
+    function closePhotoZoomModal() {
+      const modal = document.getElementById('photoZoomModal');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    }
+
+    function navigateZoomPhoto(direction) {
+      const images = (selectedFirearm && selectedFirearm.images) ? selectedFirearm.images : [];
+      if (images.length <= 1) return;
+
+      currentDetailImageIdx = (currentDetailImageIdx + direction + images.length) % images.length;
+      openPhotoZoomModal(currentDetailImageIdx);
+
+      // Keep detail modal in sync
+      const mainPhoto = document.getElementById('detailMainPhoto');
+      if (mainPhoto) mainPhoto.src = images[currentDetailImageIdx];
+      document.querySelectorAll('.detail-img-thumb').forEach((t, i) => {
+        if (i === currentDetailImageIdx) t.classList.add('active');
+        else t.classList.remove('active');
+      });
+      updateSetMainBtnState();
+    }
+
+    async function rotateZoomModalPhoto(degrees = 90) {
+      zoomState.rotation = (zoomState.rotation + degrees) % 360;
+      updateZoomTransform();
+    }
+
+    // Viewport drag & wheel zoom handlers
+    (function setupZoomViewportListeners() {
+      const viewport = document.getElementById('photoZoomViewport');
+      const img = document.getElementById('photoZoomImg');
+      if (!viewport || !img) return;
+
+      // Mouse Wheel Zoom
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY;
+        const zoomDelta = delta < 0 ? 1.15 : 0.87;
+        const newScale = Math.min(zoomState.maxScale, Math.max(zoomState.minScale, zoomState.scale * zoomDelta));
+
+        // Zoom relative to pointer
+        const rect = viewport.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left - rect.width / 2;
+        const mouseY = e.clientY - rect.top - rect.height / 2;
+
+        zoomState.panX -= (mouseX - zoomState.panX) * (newScale / zoomState.scale - 1);
+        zoomState.panY -= (mouseY - zoomState.panY) * (newScale / zoomState.scale - 1);
+        zoomState.scale = newScale;
+
+        updateZoomTransform();
+      }, { passive: false });
+
+      // Mouse Drag Pan
+      viewport.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        if (e.target.closest('.photo-zoom-nav-btn') || e.target.closest('.photo-zoom-controls')) return;
+        zoomState.isDragging = true;
+        zoomState.startX = e.clientX - zoomState.panX;
+        zoomState.startY = e.clientY - zoomState.panY;
+        viewport.classList.add('dragging');
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!zoomState.isDragging) return;
+        zoomState.panX = e.clientX - zoomState.startX;
+        zoomState.panY = e.clientY - zoomState.startY;
+        updateZoomTransform();
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (zoomState.isDragging) {
+          zoomState.isDragging = false;
+          viewport.classList.remove('dragging');
+        }
+      });
+
+      // Double-Click / Double-Tap to toggle 2.5x Zoom
+      viewport.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.photo-zoom-nav-btn')) return;
+        if (zoomState.scale > 1.2) {
+          resetZoom();
+        } else {
+          zoomState.scale = 2.5;
+          const rect = viewport.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left - rect.width / 2;
+          const mouseY = e.clientY - rect.top - rect.height / 2;
+          zoomState.panX = -mouseX * 1.5;
+          zoomState.panY = -mouseY * 1.5;
+          updateZoomTransform();
+        }
+      });
+
+      // Touch Pinch-to-Zoom and Touch Pan (Mobile / Tablets)
+      viewport.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          zoomState.isDragging = true;
+          zoomState.startX = e.touches[0].clientX - zoomState.panX;
+          zoomState.startY = e.touches[0].clientY - zoomState.panY;
+        } else if (e.touches.length === 2) {
+          zoomState.isDragging = false;
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          zoomState.activeTouchDist = Math.hypot(dx, dy);
+          zoomState.touchStartScale = zoomState.scale;
+        }
+      }, { passive: false });
+
+      viewport.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1 && zoomState.isDragging) {
+          e.preventDefault();
+          zoomState.panX = e.touches[0].clientX - zoomState.startX;
+          zoomState.panY = e.touches[0].clientY - zoomState.startY;
+          updateZoomTransform();
+        } else if (e.touches.length === 2) {
+          e.preventDefault();
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const dist = Math.hypot(dx, dy);
+          if (zoomState.activeTouchDist > 0) {
+            const factor = dist / zoomState.activeTouchDist;
+            zoomState.scale = Math.min(zoomState.maxScale, Math.max(zoomState.minScale, zoomState.touchStartScale * factor));
+            updateZoomTransform();
+          }
+        }
+      }, { passive: false });
+
+      viewport.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) {
+          zoomState.activeTouchDist = 0;
+        }
+        if (e.touches.length === 0) {
+          zoomState.isDragging = false;
+        }
+      });
+    })();
+
+    // Keyboard shortcuts for Photo Zoom Modal
+    window.addEventListener('keydown', (e) => {
+      const zoomModal = document.getElementById('photoZoomModal');
+      if (!zoomModal || !zoomModal.classList.contains('active')) return;
+
+      if (e.key === 'Escape') {
+        closePhotoZoomModal();
+      } else if (e.key === 'ArrowLeft') {
+        navigateZoomPhoto(-1);
+      } else if (e.key === 'ArrowRight') {
+        navigateZoomPhoto(1);
+      } else if (e.key === '+' || e.key === '=') {
+        zoomIn();
+      } else if (e.key === '-' || e.key === '_') {
+        zoomOut();
+      } else if (e.key === '0') {
+        resetZoom();
+      } else if (e.key.toLowerCase() === 'r') {
+        rotateZoomModalPhoto(90);
+      }
+    });
 
     // Close Modals on Close Buttons & Backdrop click
     document.getElementById('closeDetailModalBtn').onclick = closeDetailModal;
