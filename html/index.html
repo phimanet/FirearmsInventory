@@ -1944,6 +1944,21 @@
           </table>
         </div>
 
+        <!-- Important Links & Portals Editor -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div>
+              <h3 class="section-title" style="margin-bottom:2px;">
+                <svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+                Important Links & Portals
+              </h3>
+              <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0;">Save quick links for the Sheriff Permitium portal, LiveScan forms, training academies, and renewal documents.</p>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="addCcwLinkRow()" style="font-size:0.75rem;">+ Add Link</button>
+          </div>
+          <div id="ccwLinksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px; border-top:1px solid var(--border-color); padding-top:16px;">
           <button type="button" class="btn btn-ghost" onclick="closeCcwModal()">Close</button>
           <button type="button" class="btn btn-primary" onclick="saveCcwSettings()" id="saveCcwBtn">
@@ -4128,6 +4143,17 @@
       // Render firearms on CCW Permit
       renderCcwGunsTable();
 
+      // Render Important Links & Portals
+      const defaultLinks = [
+        { title: "SDSO Permitium Portal", category: "Sheriff Portal", url: "https://sandiegoca.permitium.com/ccw/start" },
+        { title: "San Diego Sheriff CCW Guidelines", category: "Official Site", url: "https://www.sdsheriff.gov/licensing/concealed-carry-weapon-license-ccw" },
+        { title: "CA DOJ LiveScan Form (BCIA 8016)", category: "LiveScan", url: "https://oag.ca.gov/fingerprints/forms" }
+      ];
+      formCcwLinks = (ccwData.importantLinks && ccwData.importantLinks.length > 0)
+        ? JSON.parse(JSON.stringify(ccwData.importantLinks))
+        : [...defaultLinks];
+      renderCcwLinks();
+
       document.getElementById('ccwModal').classList.add('active');
     }
 
@@ -4221,6 +4247,50 @@
       }
     }
 
+    // CCW Important Links State
+    let formCcwLinks = [];
+
+    function renderCcwLinks() {
+      const container = document.getElementById('ccwLinksContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (formCcwLinks.length === 0) {
+        container.innerHTML = `
+          <div style="background:rgba(255,255,255,0.02); border:1px dashed var(--border-color); border-radius:var(--radius-sm); padding:12px; text-align:center; color:var(--text-dim); font-size:0.8rem;">
+            No custom links added yet. Click "+ Add Link" to save Sheriff portals, LiveScan documents, or instructor websites.
+          </div>
+        `;
+        return;
+      }
+
+      formCcwLinks.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:8px; align-items:center; background:var(--bg-card); padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); flex-wrap:wrap;';
+        const hasUrl = item.url && item.url.trim().length > 0;
+        row.innerHTML = `
+          <input type="text" class="form-control" placeholder="Link Title / Description (e.g. SDSO Permitium Portal)" value="${item.title || ''}" onchange="formCcwLinks[${idx}].title = this.value" style="flex:2; min-width:180px;">
+          <input type="text" class="form-control" placeholder="Category (Sheriff, LiveScan, Training)" value="${item.category || ''}" onchange="formCcwLinks[${idx}].category = this.value" style="flex:1; min-width:120px;">
+          <input type="url" class="form-control" placeholder="https://..." value="${item.url || ''}" onchange="formCcwLinks[${idx}].url = this.value" style="flex:2.5; min-width:200px;">
+          <div style="display:flex; gap:4px; align-items:center;">
+            ${hasUrl ? `<a href="${item.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding:6px 10px; font-size:0.75rem; color:#38bdf8;" title="Open link in new tab">Visit ↗</a>` : ''}
+            <button type="button" class="btn btn-ghost" onclick="removeCcwLink(${idx})" style="color:#fb7185; padding:6px 8px;" title="Delete link">✕</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function addCcwLinkRow() {
+      formCcwLinks.push({ title: '', category: 'General', url: '' });
+      renderCcwLinks();
+    }
+
+    function removeCcwLink(idx) {
+      formCcwLinks.splice(idx, 1);
+      renderCcwLinks();
+    }
+
     // Save CCW Settings & Checklist to API
     async function saveCcwSettings() {
       const saveBtn = document.getElementById('saveCcwBtn');
@@ -4249,7 +4319,10 @@
 
         sdsoUploadCompleted: document.getElementById('ccwSdsoUploadCompleted').checked,
         sdsoUploadDate: document.getElementById('ccwSdsoUploadDate').value,
-        sdsoUploadNotes: document.getElementById('ccwSdsoUploadNotes').value.trim()
+        sdsoUploadNotes: document.getElementById('ccwSdsoUploadNotes').value.trim(),
+
+        // Important Links
+        importantLinks: formCcwLinks.filter(l => (l.title && l.title.trim()) || (l.url && l.url.trim()))
       };
 
       try {

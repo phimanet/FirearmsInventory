@@ -182,6 +182,11 @@ def get_seed_data():
             "sdsoUploadDate": "",
             "sdsoUploadNotes": "",
             "checklistNotes": "",
+            "importantLinks": [
+                {"title": "SDSO Permitium Portal", "url": "https://sandiegoca.permitium.com/ccw/start", "category": "Sheriff Portal"},
+                {"title": "San Diego County Sheriff CCW Guidelines", "url": "https://www.sdsheriff.gov/licensing/concealed-carry-weapon-license-ccw", "category": "Official Site"},
+                {"title": "California DOJ LiveScan Form (BCIA 8016)", "url": "https://oag.ca.gov/fingerprints/forms", "category": "LiveScan"}
+            ],
             "qualifyingGuns": [],
             "lastAlertSent": None,
             "alertHistory": []
@@ -805,9 +810,11 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             ccw["sdsoUploadCompleted"] = bool(body.get("sdsoUploadCompleted", ccw.get("sdsoUploadCompleted", False)))
             ccw["sdsoUploadDate"] = body.get("sdsoUploadDate", ccw.get("sdsoUploadDate", ""))
-            ccw["sdsoUploadNotes"] = body.get("sdsoUploadNotes", ccw.get("sdsoUploadNotes", "")).strip()
-
             ccw["checklistNotes"] = body.get("checklistNotes", ccw.get("checklistNotes", "")).strip()
+            if "importantLinks" in body:
+                ccw["importantLinks"] = body["importantLinks"]
+            elif "importantLinks" not in ccw:
+                ccw["importantLinks"] = []
             if "qualifyingGuns" in body:
                 ccw["qualifyingGuns"] = body["qualifyingGuns"]
 
