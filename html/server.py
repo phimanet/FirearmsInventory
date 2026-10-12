@@ -33,17 +33,20 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if os.path.exists("/app/data"):
     DATA_DIR = "/app/data"
     UPLOADS_DIR = "/app/uploads/photos"
+    DOCS_DIR = "/app/uploads/documents"
 else:
     # Local fallback
     ROOT_DIR = os.path.dirname(BASE_DIR)
     DATA_DIR = os.path.join(ROOT_DIR, "data")
     UPLOADS_DIR = os.path.join(ROOT_DIR, "uploads", "photos")
+    DOCS_DIR = os.path.join(ROOT_DIR, "uploads", "documents")
 
 BACKUPS_DIR = os.path.join(DATA_DIR, "backups")
 DB_FILE = os.path.join(DATA_DIR, "firearms.json")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
+os.makedirs(DOCS_DIR, exist_ok=True)
 os.makedirs(BACKUPS_DIR, exist_ok=True)
 
 # Lock for thread-safe database file operations
@@ -713,6 +716,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 "images": body.get("images", []),
                 "accessories": body.get("accessories", []),
                 "sources": body.get("sources", []),
+                "documents": body.get("documents", []),
                 "maintenanceLogs": body.get("maintenanceLogs", []),
                 "createdAt": now_iso,
                 "updatedAt": now_iso
@@ -758,6 +762,64 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.send_json(200, {"success": True, "url": public_url, "filename": filename})
             except Exception as e:
                 self.send_error_json(500, f"Upload error: {str(e)}")
+            return
+
+        if path == "/api/upload-document":
+            body = self.parse_json_body()
+            if not body or "file" not in body:
+                self.send_error_json(400, "Missing file payload.")
+                return
+
+            try:
+                data_str = body["file"]
+                orig_name = body.get("fileName", "document")
+                title = body.get("title", "").strip() or orig_name
+                category = body.get("category", "Receipt").strip()
+                ext = "pdf"
+
+                if "data:" in data_str and ";base64," in data_str:
+                    header, base64_data = data_str.split(";base64,", 1)
+                    if "pdf" in header:
+                        ext = "pdf"
+                    elif "png" in header:
+                        ext = "png"
+                    elif "webp" in header:
+                        ext = "webp"
+                    elif "jpeg" in header or "jpg" in header:
+                        ext = "jpg"
+                    elif "heic" in header or "heif" in header:
+                        ext = "heic"
+                else:
+                    base64_data = data_str
+                    if "." in orig_name:
+                        cand_ext = orig_name.rsplit(".", 1)[1].lower()
+                        if cand_ext in ["pdf", "jpg", "jpeg", "png", "webp", "heic"]:
+                            ext = cand_ext
+
+                base64_data = "".join(base64_data.split())
+                doc_bytes = base64.b64decode(base64_data)
+                doc_id = f"doc_{uuid.uuid4().hex[:8]}"
+                filename = f"doc_{int(time.time())}_{uuid.uuid4().hex[:6]}.{ext}"
+                filepath = os.path.join(DOCS_DIR, filename)
+
+                with open(filepath, "wb") as f:
+                    f.write(doc_bytes)
+
+                public_url = f"/uploads/documents/{filename}"
+                now_iso = datetime.now(timezone.utc).isoformat() + "Z"
+                doc_info = {
+                    "id": doc_id,
+                    "title": title,
+                    "category": category,
+                    "fileName": orig_name,
+                    "fileSize": len(doc_bytes),
+                    "fileType": ext.upper(),
+                    "url": public_url,
+                    "uploadedAt": now_iso
+                }
+                self.send_json(200, {"success": True, "document": doc_info})
+            except Exception as e:
+                self.send_error_json(500, f"Document upload error: {str(e)}")
             return
 
         if path == "/api/snapshot":
@@ -874,6 +936,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 existing["accessories"] = body["accessories"]
             if "sources" in body:
                 existing["sources"] = body["sources"]
+            if "documents" in body:
+                existing["documents"] = body["documents"]
             if "maintenanceLogs" in body:
                 existing["maintenanceLogs"] = body["maintenanceLogs"]
 

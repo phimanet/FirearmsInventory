@@ -1369,6 +1369,13 @@
             <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
             <span style="display:none; @media(min-width:600px){display:inline;}">Add Photos</span>
           </button>
+          <!-- Quick add document/receipt directly in popout -->
+          <input type="file" id="detailDocCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleDetailQuickDocUpload(event)">
+          <input type="file" id="detailDocFileInput" accept="application/pdf,image/*" multiple style="display:none;" onchange="handleDetailQuickDocUpload(event)">
+          <button class="btn btn-secondary" onclick="promptDetailDocUpload()" title="Add Receipt, DROS, or Bill of Sale document" style="border-color:rgba(56,189,248,0.4); color:#38bdf8;">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            <span>+ Document</span>
+          </button>
           <button class="btn btn-secondary" id="editDetailBtn">Edit</button>
           <button class="btn btn-danger" id="deleteDetailBtn">Delete</button>
           <button class="modal-close" id="closeDetailModalBtn">
@@ -1533,6 +1540,31 @@
             <tbody id="detailMaintenanceTbody"></tbody>
           </table>
         </div>
+
+        <!-- Ownership Documents, DROS & Receipts Vault -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+            <h3 class="section-title" style="margin-bottom:0;">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+              Ownership Documents & DROS Vault
+            </h3>
+            <button type="button" class="btn btn-secondary" onclick="promptDetailDocUpload()" style="padding:4px 10px; font-size:0.78rem; border-color:rgba(56,189,248,0.4); color:#38bdf8;">
+              + Upload Document / DROS
+            </button>
+          </div>
+          <table class="clean-table" id="detailDocumentsTable">
+            <thead>
+              <tr>
+                <th>Document Name</th>
+                <th>Category</th>
+                <th>File Info</th>
+                <th>Uploaded</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="detailDocumentsTbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -1693,6 +1725,23 @@
               <button type="button" class="btn btn-secondary" onclick="addMaintenanceRow()">+ Add Log</button>
             </div>
             <div id="formMaintenanceList" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+
+          <!-- Documents, DROS & Receipts Editor -->
+          <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <label class="form-label" style="margin-bottom:0;">Ownership Documents, DROS & Receipts</label>
+                <div style="font-size:0.75rem; color:var(--text-dim);">PDF paperwork, purchase invoices, warranty cards & DROS documents</div>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <input type="file" id="formDocCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleFormDocUpload(event)">
+                <input type="file" id="formDocFileInput" accept="application/pdf,image/*" multiple style="display:none;" onchange="handleFormDocUpload(event)">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('formDocCameraInput').click()" style="padding:4px 8px; font-size:0.75rem;">📷 Scan</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('formDocFileInput').click()" style="padding:4px 8px; font-size:0.75rem; border-color:rgba(56,189,248,0.4); color:#38bdf8;">+ Upload Document</button>
+              </div>
+            </div>
+            <div id="formDocumentsList" style="display:flex; flex-direction:column; gap:8px;"></div>
           </div>
 
           <div style="margin-top:24px; display:flex; justify-content:flex-end; gap:10px;">
@@ -2539,6 +2588,9 @@
         });
       }
 
+      // Ownership Documents & DROS Vault
+      renderDetailDocuments();
+
       document.getElementById('detailModal').classList.add('active');
     }
 
@@ -2689,6 +2741,7 @@
     let formAccessories = [];
     let formSources = [];
     let formMaintenance = [];
+    let formDocuments = [];
 
     document.getElementById('addFirearmBtn').onclick = () => openFormModal(null);
     document.getElementById('editDetailBtn').onclick = () => {
@@ -2719,11 +2772,13 @@
       formAccessories = item ? JSON.parse(JSON.stringify(item.accessories || [])) : [];
       formSources = item ? JSON.parse(JSON.stringify(item.sources || [])) : [];
       formMaintenance = item ? JSON.parse(JSON.stringify(item.maintenanceLogs || [])) : [];
+      formDocuments = item ? JSON.parse(JSON.stringify(item.documents || [])) : [];
 
       renderFormPhotos();
       renderFormAccessories();
       renderFormSources();
       renderFormMaintenance();
+      renderFormDocuments();
 
       document.getElementById('formModal').classList.add('active');
     }
@@ -3831,6 +3886,268 @@
       renderFormMaintenance();
     }
 
+    // ==========================================
+    // OWNERSHIP DOCUMENTS & DROS VAULT LOGIC
+    // ==========================================
+    function formatDocSize(bytes) {
+      if (!bytes || isNaN(bytes)) return '';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function getDocCategoryBadge(cat) {
+      const c = (cat || 'Document').trim();
+      if (c === 'DROS') return '<span class="tag-pill" style="background:rgba(239,68,68,0.18); color:#f87171; border:1px solid rgba(239,68,68,0.4); font-weight:700;">🛡️ DROS</span>';
+      if (c === 'Receipt') return '<span class="tag-pill" style="background:rgba(16,185,129,0.18); color:#34d399; border:1px solid rgba(16,185,129,0.4); font-weight:700;">🧾 Receipt</span>';
+      if (c === 'Bill of Sale') return '<span class="tag-pill" style="background:rgba(245,158,11,0.18); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); font-weight:700;">📜 Bill of Sale</span>';
+      if (c === 'Warranty') return '<span class="tag-pill" style="background:rgba(56,189,248,0.18); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); font-weight:700;">🛡️ Warranty</span>';
+      return `<span class="tag-pill">${escapeHtml(c)}</span>`;
+    }
+
+    function renderDetailDocuments() {
+      const tbody = document.getElementById('detailDocumentsTbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!selectedFirearm) return;
+
+      const docs = selectedFirearm.documents || [];
+      if (docs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:18px;">No ownership paperwork, receipts, or DROS files attached.</td></tr>`;
+        return;
+      }
+
+      docs.forEach((doc, idx) => {
+        const tr = document.createElement('tr');
+        const isPdf = (doc.fileType === 'PDF' || (doc.fileName && doc.fileName.toLowerCase().endsWith('.pdf')));
+        const typeIcon = isPdf ? '📄' : '🖼️';
+        const dateStr = doc.uploadedAt ? doc.uploadedAt.split('T')[0] : '-';
+        const sizeStr = doc.fileSize ? formatDocSize(doc.fileSize) : '';
+
+        tr.innerHTML = `
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.15rem;">${typeIcon}</span>
+              <div>
+                <strong style="color:#f8fafc;">${escapeHtml(doc.title || doc.fileName || 'Untitled Document')}</strong>
+                ${doc.fileName ? `<div style="font-size:0.75rem; color:var(--text-dim); font-family:monospace;">${escapeHtml(doc.fileName)}</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td>${getDocCategoryBadge(doc.category)}</td>
+          <td>
+            <span class="badge-tag" style="background:#1e293b; color:#94a3b8; font-size:0.7rem;">${doc.fileType || (isPdf ? 'PDF' : 'IMG')}</span>
+            ${sizeStr ? `<span style="font-size:0.75rem; color:var(--text-dim); margin-left:4px;">${sizeStr}</span>` : ''}
+          </td>
+          <td style="font-size:0.8rem; color:var(--text-muted);">${dateStr}</td>
+          <td style="text-align:right;">
+            <div style="display:inline-flex; gap:6px;">
+              <a href="${doc.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding:3px 9px; font-size:0.75rem;" title="View / Open document">
+                👁️ View
+              </a>
+              <a href="${doc.url}" download="${doc.fileName || 'document'}" class="btn btn-secondary" style="padding:3px 9px; font-size:0.75rem;" title="Download document file">
+                📥
+              </a>
+              <button type="button" class="btn btn-ghost" onclick="deleteDetailDocument('${doc.id || idx}')" style="color:#fb7185; padding:3px 8px; font-size:0.8rem;" title="Delete document">
+                ✕
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function promptDetailDocUpload() {
+      const mode = confirm("Press OK to choose PDF or file from your device, or Cancel to use your Camera to scan paperwork.")
+        ? 'file'
+        : 'camera';
+      if (mode === 'file') {
+        document.getElementById('detailDocFileInput').click();
+      } else {
+        document.getElementById('detailDocCameraInput').click();
+      }
+    }
+
+    async function handleDetailQuickDocUpload(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0 || !selectedFirearm) return;
+
+      const categoryPrompt = prompt("Document Category:\n1 = DROS\n2 = Receipt\n3 = Bill of Sale\n4 = Warranty / Other\n\nEnter number (1-4) or custom category:", "Receipt");
+      let category = "Receipt";
+      if (categoryPrompt) {
+        const val = categoryPrompt.trim();
+        if (val === "1" || val.toLowerCase() === "dros") category = "DROS";
+        else if (val === "2" || val.toLowerCase() === "receipt") category = "Receipt";
+        else if (val === "3" || val.toLowerCase() === "bill of sale") category = "Bill of Sale";
+        else if (val === "4" || val.toLowerCase() === "warranty") category = "Warranty";
+        else category = val;
+      }
+
+      showToast(`Uploading ${files.length} document${files.length > 1 ? 's' : ''}...`);
+
+      let successCount = 0;
+      const updatedDocs = [...(selectedFirearm.documents || [])];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const base64Data = await readFileAsBase64(file);
+          const res = await fetch('/api/upload-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file: base64Data,
+              fileName: file.name,
+              title: file.name.replace(/\.[^/.]+$/, ""),
+              category: category
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.document) {
+            updatedDocs.push(data.document);
+            successCount++;
+          }
+        } catch (err) {
+          console.error("Doc upload error:", err);
+        }
+      }
+
+      event.target.value = '';
+
+      if (successCount > 0) {
+        try {
+          selectedFirearm.documents = updatedDocs;
+          await fetch(`/api/firearms/${selectedFirearm.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ documents: updatedDocs })
+          });
+          await fetchFirearms();
+          renderDetailDocuments();
+          showToast(`✅ ${successCount} document${successCount > 1 ? 's' : ''} saved to vault`);
+        } catch (err) {
+          showToast('Failed to link document to firearm');
+        }
+      } else {
+        showToast('Document upload failed');
+      }
+    }
+
+    async function deleteDetailDocument(docId) {
+      if (!selectedFirearm) return;
+      if (!confirm("Remove this document from the firearm?")) return;
+
+      const docs = (selectedFirearm.documents || []).filter((d, idx) => (d.id !== docId && String(idx) !== String(docId)));
+      try {
+        selectedFirearm.documents = docs;
+        await fetch(`/api/firearms/${selectedFirearm.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ documents: docs })
+        });
+        await fetchFirearms();
+        renderDetailDocuments();
+        showToast('Document removed');
+      } catch (err) {
+        showToast('Failed to delete document');
+      }
+    }
+
+    // Form modal document management
+    function renderFormDocuments() {
+      const list = document.getElementById('formDocumentsList');
+      if (!list) return;
+      list.innerHTML = '';
+
+      if (formDocuments.length === 0) {
+        list.innerHTML = `<div style="font-size:0.8rem; color:var(--text-dim); padding:6px 0;">No documents attached yet. Click "+ Upload Document" or "📷 Scan" above.</div>`;
+        return;
+      }
+
+      formDocuments.forEach((doc, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:8px; align-items:center; background:var(--bg-card); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color); flex-wrap:wrap;';
+        const isPdf = (doc.fileType === 'PDF' || (doc.fileName && doc.fileName.toLowerCase().endsWith('.pdf')));
+        const typeIcon = isPdf ? '📄' : '🖼️';
+
+        row.innerHTML = `
+          <span style="font-size:1.1rem;">${typeIcon}</span>
+          <input type="text" class="form-control" placeholder="Document Title (e.g. Turners DROS, Receipt)" value="${doc.title || ''}" onchange="formDocuments[${idx}].title = this.value" style="flex:2; min-width:180px;">
+          <select class="form-control" onchange="formDocuments[${idx}].category = this.value" style="width:130px;">
+            <option value="DROS" ${doc.category === 'DROS' ? 'selected' : ''}>DROS</option>
+            <option value="Receipt" ${doc.category === 'Receipt' ? 'selected' : ''}>Receipt</option>
+            <option value="Bill of Sale" ${doc.category === 'Bill of Sale' ? 'selected' : ''}>Bill of Sale</option>
+            <option value="Warranty" ${doc.category === 'Warranty' ? 'selected' : ''}>Warranty</option>
+            <option value="Work Order" ${doc.category === 'Work Order' ? 'selected' : ''}>Work Order</option>
+            <option value="Other" ${(!['DROS','Receipt','Bill of Sale','Warranty','Work Order'].includes(doc.category)) ? 'selected' : ''}>Other</option>
+          </select>
+          <span style="font-size:0.75rem; color:var(--text-dim); min-width:60px;">${formatDocSize(doc.fileSize)}</span>
+          <a href="${doc.url}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" title="View file">👁️</a>
+          <button type="button" class="btn btn-ghost" onclick="removeFormDocument(${idx})" style="color:#fb7185;" title="Remove document">✕</button>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function removeFormDocument(idx) {
+      formDocuments.splice(idx, 1);
+      renderFormDocuments();
+    }
+
+    async function handleFormDocUpload(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+
+      showToast(`Uploading ${files.length} document${files.length > 1 ? 's' : ''}...`);
+      let successCount = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const base64Data = await readFileAsBase64(file);
+          const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+          const defaultCat = file.name.toLowerCase().includes('dros') ? 'DROS' : 'Receipt';
+
+          const res = await fetch('/api/upload-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file: base64Data,
+              fileName: file.name,
+              title: file.name.replace(/\.[^/.]+$/, ""),
+              category: defaultCat
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.document) {
+            formDocuments.push(data.document);
+            successCount++;
+          }
+        } catch (err) {
+          console.error("Doc upload error:", err);
+        }
+      }
+
+      event.target.value = '';
+      renderFormDocuments();
+
+      if (successCount > 0) {
+        showToast(`✅ ${successCount} document${successCount > 1 ? 's' : ''} added`);
+      } else {
+        showToast('Document upload failed');
+      }
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
     // Save Firearm to API
     async function saveFirearm() {
       const id = document.getElementById('formFirearmId').value;
@@ -3852,6 +4169,7 @@
         images: formImages,
         accessories: formAccessories.filter(a => a.name && a.name.trim()),
         sources: formSources.filter(s => s.name && s.name.trim()),
+        documents: formDocuments.filter(d => d.url && d.url.trim()),
         maintenanceLogs: formMaintenance.filter(m => m.type && m.type.trim())
       };
 

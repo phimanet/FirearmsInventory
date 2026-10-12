@@ -57,4 +57,16 @@
 - **Git Deployment Pipeline**:
   - Committed and pushed to `phimanet/FirearmsInventory` (`origin main`) and deployed to `192.168.72.10:8186`.
 
-
+## Ownership Documents & DROS Vault (2026-10-12)
+- **Document Storage & Upload API (`server.py`)**:
+  - Configured persistent document directory `/app/uploads/documents/` (fallback `uploads/documents/`).
+  - Implemented `POST /api/upload-document` endpoint supporting PDF and image uploads with auto-generation of metadata (`id`, `title`, `category`, `fileName`, `fileSize`, `fileType`, `url`, `uploadedAt`).
+  - Added support for `documents` array schema in `POST /api/firearms` and `PUT /api/firearms/:id`.
+- **Detail Modal Document Vault (`index.html`)**:
+  - Added `🧾 Ownership Documents & DROS Vault` section to firearm popout modal.
+  - Implemented responsive table with document type icons, category pills (`DROS`, `Receipt`, `Bill of Sale`, `Warranty`, `Work Order`), file size badges, upload timestamps, and direct action buttons (`👁️ View / Open`, `📥 Download`, `✕ Delete`).
+  - Added quick `+ Document` button in the detail popout header allowing scanning paperwork via device camera or uploading PDFs/images directly without entering edit mode.
+- **Add / Edit Modal Document Manager (`index.html`)**:
+  - Added documents manager section in the firearm form modal with camera scan button, file upload button, and per-document title and category editing.
+- **Git Deployment Pipeline**:
+  - Committed and pushed to `phimanet/FirearmsInventory` (`origin main`) and pulled on host `192.168.72.10:8186`.
