@@ -40,3 +40,21 @@
 - **Git Deployment Pipeline**:
   - Committed and pushed to `phimanet/FirearmsInventory` (`origin main`) for auto-deployment to `192.168.72.10:8186`.
 
+## Interactive Photo Cropping & Framing + Round Count Cleanup (2026-10-12)
+- **Interactive Photo Cropping & Framing Tool (`Cropper.js`)**:
+  - Integrated local Cropper.js library (`html/js/cropper.min.js` and `cropper.min.css`) with CDN fallback for 100% offline and touch-friendly mobile/desktop operation.
+  - Added dedicated `#cropPhotoModal` modal with:
+    - **Aspect Ratio Presets**: `16:9 (Card Fit - Recommended)`, `3:2 (Wide)`, `4:3 (Photo)`, `1:1 (Square)`, and `Freeform`.
+    - **Visual Controls**: Interactive zoom (`+` / `-`), rotation (`-90°` / `+90°`), and reset button.
+    - **High-Res Canvas Export**: Crops up to 2560x2560px with high smoothing quality and uploads to `/api/upload-photo`.
+  - Added `✂️ Crop Photo` button in the Detail Popout toolbar (`#detailPhotoToolbar`).
+  - Added `✂️` crop icon on each thumbnail in the Add / Edit Firearm modal (`renderFormPhotos()`).
+  - Automatically persists cropped photos to the firearm record on backend disk (`PUT /api/firearms/:id`).
+- **Removed Round Counts from Main Page & Firearm Cards**:
+  - Removed `Total Rounds Tracked` metric box from the top summary metrics banner.
+  - Removed `${f.roundCount} Rds` badge from the front of all firearm inventory cards.
+  - Kept detailed round count tracking and maintenance history intact inside individual firearm detail and edit modals.
+- **Git Deployment Pipeline**:
+  - Committed and pushed to `phimanet/FirearmsInventory` (`origin main`) and deployed to `192.168.72.10:8186`.
+
+

@@ -7,6 +7,15 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><path d='M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm0 4a3 3 0 110 6 3 3 0 010-6zm5 11.2c-1.46 1.63-3.3 2.65-5 3.02-1.7-.37-3.54-1.39-5-3.02V15.5c0-1.66 3.34-2.5 5-2.5s5 .84 5 2.5v1.7z'/></svg>">
   <!-- Tesseract.js for OCR Serial Number grabber from camera photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- Cropper.js for Interactive Photo Cropping & Framing -->
+  <link rel="stylesheet" href="js/cropper.min.css">
+  <script src="js/cropper.min.js"></script>
+  <script>
+    if (typeof Cropper === 'undefined') {
+      document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">');
+      document.write('<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"><\\/script>');
+    }
+  </script>
   <style>
     :root {
       --bg-primary: #0a0f18;
@@ -511,7 +520,13 @@
     }
     .modal-close:hover { color: var(--text-main); background: rgba(255,255,255,0.08); }
     .modal-close svg { width: 20px; height: 20px; fill: currentColor; }
-    .modal-body { padding: 22px; display: flex; flex-direction: column; gap: 20px; }
+    /* Crop Modal Specifics */
+    .crop-ratio-btn.active {
+      background: rgba(16, 185, 129, 0.2) !important;
+      color: #34d399 !important;
+      border-color: #10b981 !important;
+      font-weight: 700;
+    }
 
     /* Detail Popout Specifics */
     .detail-gallery {
@@ -1280,10 +1295,6 @@
         <span class="metric-label">Total Insured Value</span>
         <span class="metric-val emerald" id="summaryInsured">$0.00</span>
       </div>
-      <div class="metric-item">
-        <span class="metric-label">Total Rounds Tracked</span>
-        <span class="metric-val" id="summaryRounds">0 Rds</span>
-      </div>
       <!-- CCW Permit Expiration & Countdown (Prominent on Main Page) -->
       <div class="metric-item metric-ccw" id="summaryCcwMetricItem" onclick="openCcwModal()" title="Click to view & manage California CCW Permit & SDSO Renewal">
         <span class="metric-label" style="color:#fbbf24; display:flex; align-items:center; gap:4px;">
@@ -1375,6 +1386,10 @@
           <button type="button" class="btn btn-primary" onclick="openPhotoZoomModal()" title="Inspect Photo in High-Res Zoom" style="padding:5px 12px; font-size:0.78rem; background:#0284c7; border-color:#38bdf8;">
             <svg viewBox="0 0 24 24" style="width:14px; height:14px;"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zm.5-7H9v2H7v1h2v2h1v-2h2V9h-2V7z"/></svg>
             🔍 Zoom & Inspect
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="openCropModalForCurrentDetailPhoto()" title="Crop & frame this photo to fit cards perfectly" style="padding:5px 12px; font-size:0.78rem; background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:#34d399; font-weight:700;">
+            <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:currentColor;"><path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z"/></svg>
+            ✂️ Crop Photo
           </button>
           <button type="button" class="btn btn-secondary" onclick="rotateCurrentDetailPhoto(-90)" title="Rotate Counter-Clockwise 90°" style="padding:5px 10px; font-size:0.78rem;">
             <svg viewBox="0 0 24 24" style="width:14px; height:14px;"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.51-1.67 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.8-.88-1.6-1.01-2.47zm1.02 5.47l-1.41 1.41C7.8 21.03 10.27 22 13 22c5.52 0 10-4.48 10-10S18.52 2 13 2c-3.14 0-5.91 1.45-7.72 3.72L3 3v6h6L7.11 8.53z"/></svg>
@@ -2064,6 +2079,65 @@
     </div>
   </div>
 
+  <!-- Interactive Firearm Photo Crop & Frame Modal -->
+  <div class="modal-overlay" id="cropPhotoModal">
+    <div class="modal-content" style="max-width: 920px; width: 95vw; max-height: 94vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:#10b981;"><path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z"/></svg>
+          <h2 class="modal-title">Crop & Frame Firearm Photo</h2>
+        </div>
+        <button class="modal-close" onclick="closeCropModal()">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </div>
+
+      <!-- Crop Toolbar (Aspect Ratio Presets & Controls) -->
+      <div style="padding: 10px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border-color); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+        <!-- Aspect Ratios -->
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Aspect Ratio:</span>
+          <button type="button" class="btn btn-secondary crop-ratio-btn active" data-ratio="1.7777778" onclick="setCropRatio(16/9, this)" style="padding:4px 10px; font-size:0.75rem;">16:9 (Card Fit)</button>
+          <button type="button" class="btn btn-secondary crop-ratio-btn" data-ratio="1.5" onclick="setCropRatio(3/2, this)" style="padding:4px 10px; font-size:0.75rem;">3:2 (Wide)</button>
+          <button type="button" class="btn btn-secondary crop-ratio-btn" data-ratio="1.3333333" onclick="setCropRatio(4/3, this)" style="padding:4px 10px; font-size:0.75rem;">4:3 (Photo)</button>
+          <button type="button" class="btn btn-secondary crop-ratio-btn" data-ratio="1" onclick="setCropRatio(1, this)" style="padding:4px 10px; font-size:0.75rem;">1:1 (Square)</button>
+          <button type="button" class="btn btn-secondary crop-ratio-btn" data-ratio="NaN" onclick="setCropRatio(NaN, this)" style="padding:4px 10px; font-size:0.75rem;">Freeform</button>
+        </div>
+
+        <!-- Transform Controls -->
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button type="button" class="btn btn-secondary" onclick="cropZoom(0.1)" title="Zoom In" style="padding:4px 10px; font-size:0.8rem;">🔍 +</button>
+          <button type="button" class="btn btn-secondary" onclick="cropZoom(-0.1)" title="Zoom Out" style="padding:4px 10px; font-size:0.8rem;">🔍 -</button>
+          <button type="button" class="btn btn-secondary" onclick="cropRotate(-90)" title="Rotate Counter-Clockwise" style="padding:4px 10px; font-size:0.8rem;">⟲ -90°</button>
+          <button type="button" class="btn btn-secondary" onclick="cropRotate(90)" title="Rotate Clockwise" style="padding:4px 10px; font-size:0.8rem;">⟳ +90°</button>
+          <button type="button" class="btn btn-secondary" onclick="cropReset()" title="Reset Crop to Original" style="padding:4px 10px; font-size:0.75rem; color:#94a3b8;">↺ Reset</button>
+        </div>
+      </div>
+
+      <!-- Crop Canvas / Image Area -->
+      <div class="modal-body" style="padding: 12px; background: #030712; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 380px; max-height: 58vh; position: relative;">
+        <div style="width: 100%; height: 100%; max-height: 56vh; display: flex; align-items: center; justify-content: center;">
+          <img id="cropTargetImage" src="" alt="Crop Target" style="max-width: 100%; max-height: 54vh; display: block;">
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); background: var(--bg-card); flex-wrap: wrap; gap: 10px;">
+        <span style="font-size:0.75rem; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
+          <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:currentColor;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          Drag handles to crop, or drag image to reposition
+        </span>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeCropModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveCropBtn" onclick="saveCroppedPhoto()" style="background:#10b981; border-color:#059669; font-weight:700;">
+            <svg viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            Apply Crop & Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Interactive High-Res Photo Zoom Modal -->
   <div class="photo-zoom-overlay" id="photoZoomModal" tabindex="-1">
     <div class="photo-zoom-header">
@@ -2177,7 +2251,8 @@
       document.getElementById('summaryValue').textContent = formatCurrency(summary.totalReplacementValue);
       document.getElementById('summaryAccessories').textContent = formatCurrency(summary.totalAccessoriesValue);
       document.getElementById('summaryInsured').textContent = formatCurrency(summary.grandTotalInsuredValue);
-      document.getElementById('summaryRounds').textContent = `${formatNumber(summary.totalRoundsTracked)} Rds`;
+      const roundsEl = document.getElementById('summaryRounds');
+      if (roundsEl) roundsEl.textContent = `${formatNumber(summary.totalRoundsTracked)} Rds`;
     }
 
     // Render Grid
@@ -2290,7 +2365,6 @@
               ${ccwBadgeHtml}
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-              <span class="card-badge-rounds">${formatNumber(f.roundCount || 0)} Rds</span>
               ${zoomBadgeHtml}
             </div>
           </div>
@@ -2670,8 +2744,9 @@
           <img src="${img}" style="width:100%; height:100%; object-fit:cover;">
           ${isMain ? `<span style="position:absolute; top:3px; left:3px; background:rgba(16,185,129,0.9); color:#fff; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:4px; text-transform:uppercase;">Main</span>` : ''}
           <div style="position:absolute; bottom:2px; left:2px; right:2px; display:flex; justify-content:space-between; gap:2px; background:rgba(4,8,15,0.85); border-radius:4px; padding:2px 4px;">
+            <button type="button" onclick="openCropModalForFormPhoto(${idx})" title="Crop & Frame Photo" style="background:transparent; border:none; color:#34d399; cursor:pointer; font-size:0.75rem;">✂️</button>
             <button type="button" onclick="rotateFormPhoto(${idx})" title="Rotate 90°" style="background:transparent; border:none; color:#93c5fd; cursor:pointer; font-size:0.75rem;">⟳</button>
-            <button type="button" onclick="scanSerialFromFormPhoto(${idx})" title="Scan Serial from this photo" style="background:transparent; border:none; color:#34d399; cursor:pointer; font-size:0.75rem;" title="Scan Serial from this photo">🔍</button>
+            <button type="button" onclick="scanSerialFromFormPhoto(${idx})" title="Scan Serial from this photo" style="background:transparent; border:none; color:#a7f3d0; cursor:pointer; font-size:0.75rem;">🔍</button>
             ${!isMain ? `<button type="button" onclick="setFormMainPhoto(${idx})" title="Set as Main Cover" style="background:transparent; border:none; color:#fbbf24; cursor:pointer; font-size:0.65rem; font-weight:700;">★ Main</button>` : ''}
             <button type="button" onclick="removePhoto(${idx})" title="Delete" style="background:transparent; border:none; color:#f87171; cursor:pointer; font-size:0.75rem;">✕</button>
           </div>
@@ -3416,6 +3491,174 @@
         btn.textContent = '★ Set as Main';
         btn.style.opacity = '1';
         btn.style.pointerEvents = 'auto';
+      }
+    }
+
+    // ==========================================
+    // INTERACTIVE PHOTO CROPPING & FRAMING (CROPPER.JS)
+    // ==========================================
+    let activeCropper = null;
+    let cropTargetSource = 'detail'; // 'detail' or 'form'
+    let cropTargetIdx = 0;
+    let currentCropRatio = 16 / 9;
+
+    function openCropModalForCurrentDetailPhoto() {
+      if (!selectedFirearm || !selectedFirearm.images || selectedFirearm.images.length === 0) {
+        showToast('No photo available to crop');
+        return;
+      }
+      const targetUrl = selectedFirearm.images[currentDetailImageIdx] || selectedFirearm.images[0];
+      openCropModal(targetUrl, 'detail', currentDetailImageIdx);
+    }
+
+    function openCropModalForFormPhoto(idx) {
+      if (!formImages || idx >= formImages.length) {
+        showToast('No photo available to crop');
+        return;
+      }
+      openCropModal(formImages[idx], 'form', idx);
+    }
+
+    function openCropModal(imageUrl, source, index) {
+      cropTargetSource = source;
+      cropTargetIdx = index;
+      currentCropRatio = 16 / 9; // Default to 16:9 Card Fit
+
+      const modal = document.getElementById('cropPhotoModal');
+      const img = document.getElementById('cropTargetImage');
+
+      // Reset ratio buttons
+      document.querySelectorAll('.crop-ratio-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.ratio === '1.7777778');
+      });
+
+      if (activeCropper) {
+        activeCropper.destroy();
+        activeCropper = null;
+      }
+
+      img.src = imageUrl;
+      modal.classList.add('active');
+
+      const initCropper = () => {
+        if (activeCropper) activeCropper.destroy();
+        try {
+          activeCropper = new Cropper(img, {
+            aspectRatio: 16 / 9,
+            viewMode: 1,
+            autoCropArea: 0.95,
+            responsive: true,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false
+          });
+        } catch (err) {
+          console.error('Cropper initialization error:', err);
+          showToast('Failed to initialize crop tool');
+        }
+      };
+
+      img.onload = initCropper;
+      if (img.complete && img.naturalWidth) {
+        initCropper();
+      }
+    }
+
+    function closeCropModal() {
+      const modal = document.getElementById('cropPhotoModal');
+      modal.classList.remove('active');
+      if (activeCropper) {
+        activeCropper.destroy();
+        activeCropper = null;
+      }
+    }
+
+    function setCropRatio(ratio, btn) {
+      currentCropRatio = ratio;
+      document.querySelectorAll('.crop-ratio-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      if (activeCropper) {
+        activeCropper.setAspectRatio(isNaN(ratio) ? NaN : ratio);
+      }
+    }
+
+    function cropZoom(delta) {
+      if (activeCropper) activeCropper.zoom(delta);
+    }
+
+    function cropRotate(degrees) {
+      if (activeCropper) activeCropper.rotate(degrees);
+    }
+
+    function cropReset() {
+      if (activeCropper) activeCropper.reset();
+    }
+
+    async function saveCroppedPhoto() {
+      if (!activeCropper) return;
+      const saveBtn = document.getElementById('saveCropBtn');
+      const originalText = saveBtn.innerHTML;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span>⏳ Applying & Saving...</span>';
+
+      try {
+        const canvas = activeCropper.getCroppedCanvas({
+          maxWidth: 2560,
+          maxHeight: 2560,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high'
+        });
+
+        if (!canvas) {
+          throw new Error('Canvas extraction failed');
+        }
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+        // Upload cropped image to backend
+        const res = await fetch('/api/upload-photo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: dataUrl })
+        });
+        const data = await res.json();
+
+        if (data.success && data.url) {
+          const newUrl = data.url;
+
+          if (cropTargetSource === 'detail' && selectedFirearm) {
+            selectedFirearm.images[cropTargetIdx] = newUrl;
+
+            // Persist to backend
+            await fetch(`/api/firearms/${selectedFirearm.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ images: selectedFirearm.images })
+            });
+
+            await fetchFirearms();
+            openDetailModal(selectedFirearm.id);
+            showToast('✅ Photo cropped & saved successfully');
+          } else if (cropTargetSource === 'form') {
+            formImages[cropTargetIdx] = newUrl;
+            renderFormPhotos();
+            showToast('✅ Photo cropped successfully');
+          }
+
+          closeCropModal();
+        } else {
+          showToast('Failed to save cropped image');
+        }
+      } catch (err) {
+        console.error('Save crop error:', err);
+        showToast('Error saving crop: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
       }
     }
 
