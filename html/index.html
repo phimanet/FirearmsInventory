@@ -1492,6 +1492,7 @@
           </div>
         </div>
       </div>
+    </div>
   </div>
 
   <!-- Interactive High-Res Photo Zoom Modal -->
@@ -1503,23 +1504,23 @@
         <span class="badge-tag" id="photoZoomCounter" style="background:rgba(56,189,248,0.2); color:#38bdf8; font-weight:700;">1 / 1</span>
       </div>
       <div class="photo-zoom-controls">
-        <button type="button" class="photo-zoom-btn" onclick="zoomOut()" title="Zoom Out (-)">
+        <button type="button" class="photo-zoom-btn" id="photoZoomOutBtn" onclick="zoomOut()" title="Zoom Out (-)">
           <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
           Out
         </button>
         <input type="range" id="photoZoomSlider" class="photo-zoom-slider" min="1" max="5" step="0.1" value="1" oninput="onZoomSliderChange(this.value)" title="Slide to Zoom">
-        <button type="button" class="photo-zoom-btn" onclick="zoomIn()" title="Zoom In (+)">
+        <button type="button" class="photo-zoom-btn" id="photoZoomInBtn" onclick="zoomIn()" title="Zoom In (+)">
           <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           In
         </button>
         <button type="button" class="photo-zoom-btn" id="photoZoomLevelBtn" onclick="resetZoom()" title="Reset to Fit (0 or Double-Click)">
           ↺ 100%
         </button>
-        <button type="button" class="photo-zoom-btn" onclick="rotateZoomModalPhoto(90)" title="Rotate Clockwise 90°">
+        <button type="button" class="photo-zoom-btn" id="photoZoomRotateBtn" onclick="rotateZoomModalPhoto(90)" title="Rotate Clockwise 90°">
           <svg viewBox="0 0 24 24"><path d="M15.55 5.55L11 1v3.07C6.98 4.58 4 8.01 4 12.18c0 2.21.84 4.23 2.22 5.75L7.66 16.5C6.63 15.34 6 13.84 6 12.18c0-3.31 2.39-6.07 5.54-6.62V9l4.55-4.55zM17.78 6.25l-1.44 1.43c1.03 1.16 1.66 2.66 1.66 4.32 0 3.31-2.39 6.07-5.54 6.62v-3.44l-4.55 4.55 4.55 4.55v-3.07c4.02-.51 7-3.94 7-8.11 0-2.21-.84-4.23-2.22-5.75z"/></svg>
           ⟳ Rotate
         </button>
-        <button type="button" class="photo-zoom-btn" onclick="closePhotoZoomModal()" title="Close Viewer (Esc)" style="color:#fb7185; margin-left:6px;">
+        <button type="button" class="photo-zoom-btn" id="photoZoomCloseBtn" onclick="closePhotoZoomModal()" title="Close Viewer (Esc)" style="color:#fb7185; margin-left:6px;">
           <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
           Close
         </button>
@@ -3376,13 +3377,33 @@
     document.getElementById('closeDetailModalBtn').onclick = closeDetailModal;
     document.getElementById('closeFormModalBtn').onclick = closeFormModal;
 
-    window.onclick = (e) => {
+    // Direct event listener bindings for Photo Zoom modal buttons
+    const pzCloseBtn = document.getElementById('photoZoomCloseBtn');
+    if (pzCloseBtn) pzCloseBtn.onclick = (e) => { e.stopPropagation(); closePhotoZoomModal(); };
+
+    const pzInBtn = document.getElementById('photoZoomInBtn');
+    if (pzInBtn) pzInBtn.onclick = (e) => { e.stopPropagation(); zoomIn(); };
+
+    const pzOutBtn = document.getElementById('photoZoomOutBtn');
+    if (pzOutBtn) pzOutBtn.onclick = (e) => { e.stopPropagation(); zoomOut(); };
+
+    const pzLvlBtn = document.getElementById('photoZoomLevelBtn');
+    if (pzLvlBtn) pzLvlBtn.onclick = (e) => { e.stopPropagation(); resetZoom(); };
+
+    const pzRotBtn = document.getElementById('photoZoomRotateBtn');
+    if (pzRotBtn) pzRotBtn.onclick = (e) => { e.stopPropagation(); rotateZoomModalPhoto(90); };
+
+    // Backdrop dismissal
+    window.addEventListener('click', (e) => {
       if (e.target.classList.contains('modal-overlay')) {
         e.target.classList.remove('active');
-      } else if (e.target.id === 'photoZoomModal') {
-        closePhotoZoomModal();
+      } else if (e.target.id === 'photoZoomModal' || e.target.id === 'photoZoomViewport') {
+        // Clicking backdrop outside image dismisses viewer
+        if (!zoomState.hasMoved) {
+          closePhotoZoomModal();
+        }
       }
-    };
+    });
 
     // Initialize
     fetchFirearms();
