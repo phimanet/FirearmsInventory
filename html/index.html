@@ -456,27 +456,30 @@
       background: rgba(3, 6, 12, 0.94);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      z-index: 500;
+      z-index: 1000;
       display: flex;
       flex-direction: column;
       opacity: 0;
       visibility: hidden;
+      pointer-events: none;
       transition: opacity 0.2s ease, visibility 0.2s ease;
-      touch-action: none;
     }
     .photo-zoom-overlay.active {
       opacity: 1;
       visibility: visible;
+      pointer-events: auto;
     }
     .photo-zoom-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 12px 20px;
-      background: rgba(10, 15, 26, 0.85);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      z-index: 510;
+      background: rgba(10, 15, 26, 0.92);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      z-index: 1020;
       user-select: none;
+      position: relative;
+      pointer-events: auto;
     }
     .photo-zoom-title {
       font-size: 0.95rem;
@@ -489,17 +492,20 @@
     .photo-zoom-controls {
       display: flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(15, 23, 42, 0.8);
-      padding: 4px 8px;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 5px 12px;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      position: relative;
+      z-index: 1030;
+      pointer-events: auto;
     }
     .photo-zoom-btn {
-      background: transparent;
-      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       color: #cbd5e1;
-      padding: 6px 10px;
+      padding: 6px 12px;
       border-radius: 6px;
       font-size: 0.8rem;
       font-weight: 600;
@@ -509,9 +515,10 @@
       gap: 5px;
       transition: all 0.15s ease;
       user-select: none;
+      pointer-events: auto;
     }
     .photo-zoom-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.15);
       color: #fff;
     }
     .photo-zoom-btn:active {
@@ -521,6 +528,12 @@
       width: 16px;
       height: 16px;
       fill: currentColor;
+    }
+    .photo-zoom-slider {
+      width: 100px;
+      accent-color: #38bdf8;
+      cursor: pointer;
+      vertical-align: middle;
     }
     .photo-zoom-viewport {
       flex: 1;
@@ -534,6 +547,7 @@
       cursor: default;
       user-select: none;
       -webkit-user-select: none;
+      touch-action: none;
     }
     .photo-zoom-viewport.can-drag {
       cursor: grab;
@@ -557,22 +571,23 @@
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       color: #fff;
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      z-index: 520;
+      z-index: 1020;
       transition: all 0.15s ease;
       backdrop-filter: blur(6px);
+      pointer-events: auto;
     }
     .photo-zoom-nav-btn:hover {
-      background: rgba(16, 185, 129, 0.85);
+      background: rgba(16, 185, 129, 0.9);
       border-color: rgba(16, 185, 129, 1);
       transform: translateY(-50%) scale(1.08);
     }
@@ -732,14 +747,165 @@
     }
     .toast.show { transform: translateY(0); opacity: 1; }
 
-    /* Print Styles for Insurance Export */
+    /* Print & PDF Export Styles: Clean, Professional Spacing */
     @media print {
-      header, .summary-bar, .filter-bar, .header-actions, .btn, .modal-close { display: none !important; }
-      body { background: #ffffff !important; color: #000000 !important; }
-      .modal-overlay { position: static !important; background: transparent !important; }
-      .modal-content { max-width: 100% !important; border: none !important; box-shadow: none !important; }
-      .clean-table { border: 1px solid #ccc !important; }
-      .clean-table th, .clean-table td { color: #000 !important; border-bottom: 1px solid #eee !important; }
+      @page {
+        size: letter portrait;
+        margin: 12mm 15mm;
+      }
+
+      /* Hide everything by default */
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 9pt !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      header,
+      .summary-bar,
+      .filter-bar,
+      .header-actions,
+      .btn,
+      .modal-close,
+      .card-zoom-badge,
+      .toast,
+      #detailModal,
+      #formModal,
+      #serialScannerModal,
+      #photoZoomModal,
+      #compareModal,
+      main {
+        display: none !important;
+      }
+
+      /* Isolate Insurance Report Modal */
+      #insuranceModal.active {
+        display: block !important;
+        position: static !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+
+      #insuranceModal .modal-content {
+        max-width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        transform: none !important;
+        overflow: visible !important;
+      }
+
+      #insuranceModal .modal-header {
+        border-bottom: 2px solid #0f172a !important;
+        padding: 0 0 8px 0 !important;
+        margin-bottom: 12px !important;
+        background: transparent !important;
+      }
+
+      #insuranceModal .modal-title {
+        font-size: 15pt !important;
+        color: #0f172a !important;
+        font-weight: 800 !important;
+      }
+
+      #insuranceModal .modal-body {
+        padding: 0 !important;
+        gap: 12px !important;
+      }
+
+      #insuranceReportDate {
+        color: #64748b !important;
+        font-size: 8pt !important;
+      }
+
+      .detail-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 10px !important;
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        padding: 10px !important;
+        margin-bottom: 14px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      .detail-field {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+      }
+
+      .detail-field-label {
+        font-size: 6.5pt !important;
+        text-transform: uppercase !important;
+        color: #64748b !important;
+        font-weight: 700 !important;
+      }
+
+      .detail-field-val {
+        font-size: 11pt !important;
+        color: #0f172a !important;
+        font-weight: 700 !important;
+      }
+
+      /* Clean Table Styling */
+      .clean-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border: 1px solid #cbd5e1 !important;
+        margin-top: 6px !important;
+      }
+
+      .clean-table th {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+        font-size: 8pt !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+        padding: 7px 8px !important;
+        border: 1px solid #cbd5e1 !important;
+        text-align: left !important;
+      }
+
+      .clean-table td {
+        font-size: 8.5pt !important;
+        color: #1e293b !important;
+        padding: 6px 8px !important;
+        border: 1px solid #e2e8f0 !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      .clean-table tr:nth-child(even) td {
+        background: #f8fafc !important;
+      }
+
+      .tag-pill {
+        border: 1px solid #cbd5e1 !important;
+        background: #fff !important;
+        color: #334155 !important;
+        padding: 1px 5px !important;
+        border-radius: 4px !important;
+        font-size: 7pt !important;
+        font-weight: 700 !important;
+      }
+
+      code {
+        font-family: monospace !important;
+        font-size: 8pt !important;
+        background: transparent !important;
+        color: #0f172a !important;
+      }
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
@@ -1337,13 +1503,14 @@
         <span class="badge-tag" id="photoZoomCounter" style="background:rgba(56,189,248,0.2); color:#38bdf8; font-weight:700;">1 / 1</span>
       </div>
       <div class="photo-zoom-controls">
-        <button type="button" class="photo-zoom-btn" onclick="zoomIn()" title="Zoom In (+)">
-          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          In
-        </button>
         <button type="button" class="photo-zoom-btn" onclick="zoomOut()" title="Zoom Out (-)">
           <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
           Out
+        </button>
+        <input type="range" id="photoZoomSlider" class="photo-zoom-slider" min="1" max="5" step="0.1" value="1" oninput="onZoomSliderChange(this.value)" title="Slide to Zoom">
+        <button type="button" class="photo-zoom-btn" onclick="zoomIn()" title="Zoom In (+)">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          In
         </button>
         <button type="button" class="photo-zoom-btn" id="photoZoomLevelBtn" onclick="resetZoom()" title="Reset to Fit (0 or Double-Click)">
           ↺ 100%
@@ -2906,6 +3073,7 @@
       const viewport = document.getElementById('photoZoomViewport');
       const img = document.getElementById('photoZoomImg');
       const levelBtn = document.getElementById('photoZoomLevelBtn');
+      const slider = document.getElementById('photoZoomSlider');
       if (!img) return;
 
       if (zoomState.scale <= 1.01) {
@@ -2928,6 +3096,16 @@
 
       if (levelBtn) {
         levelBtn.textContent = `↺ ${Math.round(zoomState.scale * 100)}%`;
+      }
+      if (slider && Math.abs(parseFloat(slider.value) - zoomState.scale) > 0.05) {
+        slider.value = zoomState.scale.toFixed(1);
+      }
+    }
+
+    function onZoomSliderChange(val) {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num >= 1 && num <= 6) {
+        applyZoomScale(num);
       }
     }
 
@@ -2991,6 +3169,7 @@
       const counterEl = document.getElementById('photoZoomCounter');
       const prevBtn = document.getElementById('photoZoomPrevBtn');
       const nextBtn = document.getElementById('photoZoomNextBtn');
+      const slider = document.getElementById('photoZoomSlider');
 
       if (!modal || !img) return;
 
@@ -3000,6 +3179,8 @@
       zoomState.panY = 0;
       zoomState.rotation = 0;
       zoomState.isDragging = false;
+
+      if (slider) slider.value = 1;
 
       img.src = images[currentDetailImageIdx];
       if (titleEl && selectedFirearm) {
@@ -3198,6 +3379,8 @@
     window.onclick = (e) => {
       if (e.target.classList.contains('modal-overlay')) {
         e.target.classList.remove('active');
+      } else if (e.target.id === 'photoZoomModal') {
+        closePhotoZoomModal();
       }
     };
 
