@@ -313,23 +313,22 @@
       gap: 4px;
     }
     .card-badge-ccw {
-      position: absolute;
-      top: 42px;
-      left: 10px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      background: rgba(245, 158, 11, 0.22);
-      backdrop-filter: blur(6px);
-      border: 1px solid rgba(245, 158, 11, 0.5);
-      color: #fbbf24;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 4px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: rgba(245, 158, 11, 0.18);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fbbf24;
+      white-space: nowrap;
+      user-select: none;
+      vertical-align: middle;
+      line-height: 1.2;
     }
-    .card-badge-ccw svg { width: 12px; height: 12px; fill: currentColor; }
+    .card-badge-ccw svg { width: 11px; height: 11px; fill: currentColor; }
 
     /* CCW Modal & Timeline Styles */
     .ccw-banner {
@@ -2226,7 +2225,6 @@
             ${photoHtml}
             <span class="card-badge-type">${f.type || 'Firearm'}</span>
             <span class="card-badge-rounds">${formatNumber(f.roundCount || 0)} Rds</span>
-            ${ccwBadgeHtml}
             ${zoomBadgeHtml}
           </div>
           <div class="card-content">
@@ -2236,7 +2234,10 @@
                 <div class="card-model">${f.model || ''}</div>
               </div>
               <div class="card-val">
-                <div class="card-price-primary">${formatCurrency(f.replacementValue || f.purchasePrice || 0)}</div>
+                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                  ${ccwBadgeHtml}
+                  <div class="card-price-primary">${formatCurrency(f.replacementValue || f.purchasePrice || 0)}</div>
+                </div>
                 <div class="card-price-sub">Value</div>
               </div>
             </div>
