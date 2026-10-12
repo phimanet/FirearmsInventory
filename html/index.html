@@ -383,7 +383,19 @@
     .card-content { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
     .card-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card-make { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #60a5fa; letter-spacing: 0.04em; }
+    .card-model-wrap { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
     .card-model { font-size: 1.15rem; font-weight: 700; color: var(--text-main); line-height: 1.25; }
+    .card-caliber-badge {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.28);
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
     .card-val { text-align: right; }
     .card-price-primary { font-size: 1.1rem; font-weight: 700; color: #34d399; }
     .card-price-sub { font-size: 0.72rem; color: var(--text-muted); }
@@ -2222,7 +2234,10 @@
             <div class="card-title-row">
               <div>
                 <span class="card-make">${f.make || ''}</span>
-                <div class="card-model">${f.model || ''}</div>
+                <div class="card-model-wrap">
+                  <span class="card-model">${f.model || ''}</span>
+                  ${f.caliber ? `<span class="card-caliber-badge">${f.caliber}</span>` : ''}
+                </div>
               </div>
               <div class="card-val">
                 <div class="card-price-primary">${formatCurrency(f.replacementValue || f.purchasePrice || 0)}</div>
@@ -2231,7 +2246,6 @@
             </div>
 
             <div class="card-specs-row">
-              ${f.caliber ? `<span class="spec-pill">Cal: <strong>${f.caliber}</strong></span>` : ''}
               ${f.barrelLength ? `<span class="spec-pill">Bbl: <strong>${f.barrelLength}</strong></span>` : ''}
               ${f.action ? `<span class="spec-pill">${f.action}</span>` : ''}
             </div>
