@@ -506,22 +506,27 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: grab;
+      cursor: default;
       user-select: none;
+      -webkit-user-select: none;
     }
-    .photo-zoom-viewport.dragging {
+    .photo-zoom-viewport.can-drag {
+      cursor: grab;
+    }
+    .photo-zoom-viewport.is-dragging {
       cursor: grabbing;
     }
     .photo-zoom-img {
       max-width: 90vw;
       max-height: 85vh;
       object-fit: contain;
-      transform-origin: center center;
-      transition: transform 0.05s ease-out;
+      transform-origin: 0 0;
       will-change: transform;
-      pointer-events: auto;
+      pointer-events: none;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
       border-radius: 6px;
+      user-select: none;
+      -webkit-user-drag: none;
     }
     .photo-zoom-nav-btn {
       position: absolute;
@@ -2805,11 +2810,11 @@
     };
 
     // ----------------------------------------------------------------------
-    // Interactive Photo Zoom & Inspection Lightbox
+    // Interactive Photo Zoom & Inspection Lightbox (Rock-Solid & Jitter-Free)
     // ----------------------------------------------------------------------
     let zoomState = {
       scale: 1,
-      minScale: 0.5,
+      minScale: 1,
       maxScale: 6,
       panX: 0,
       panY: 0,
@@ -2817,16 +2822,76 @@
       isDragging: false,
       startX: 0,
       startY: 0,
+      startPanX: 0,
+      startPanY: 0,
+      hasMoved: false,
       activeTouchDist: 0,
-      touchStartScale: 1
+      touchStartScale: 1,
+      pinchCenterViewportX: 0,
+      pinchCenterViewportY: 0
     };
 
+    function clampZoomPan() {
+      const viewport = document.getElementById('photoZoomViewport');
+      const img = document.getElementById('photoZoomImg');
+      if (!viewport || !img) return;
+
+      const vWidth = viewport.clientWidth;
+      const vHeight = viewport.clientHeight;
+      const baseWidth = img.offsetWidth || vWidth;
+      const baseHeight = img.offsetHeight || vHeight;
+
+      const currentW = baseWidth * zoomState.scale;
+      const currentH = baseHeight * zoomState.scale;
+
+      // Allow dragging so image can reach edges with margin
+      const margin = 50;
+      let maxPanX, minPanX, maxPanY, minPanY;
+
+      if (currentW <= vWidth) {
+        maxPanX = margin;
+        minPanX = -margin;
+      } else {
+        maxPanX = (currentW - vWidth) / 2 + margin;
+        minPanX = -(currentW - vWidth) / 2 - margin;
+      }
+
+      if (currentH <= vHeight) {
+        maxPanY = margin;
+        minPanY = -margin;
+      } else {
+        maxPanY = (currentH - vHeight) / 2 + margin;
+        minPanY = -(currentH - vHeight) / 2 - margin;
+      }
+
+      zoomState.panX = Math.max(minPanX, Math.min(maxPanX, zoomState.panX));
+      zoomState.panY = Math.max(minPanY, Math.min(maxPanY, zoomState.panY));
+    }
+
     function updateZoomTransform() {
+      const viewport = document.getElementById('photoZoomViewport');
       const img = document.getElementById('photoZoomImg');
       const levelBtn = document.getElementById('photoZoomLevelBtn');
       if (!img) return;
 
-      img.style.transform = `translate(${zoomState.panX}px, ${zoomState.panY}px) scale(${zoomState.scale}) rotate(${zoomState.rotation}deg)`;
+      if (zoomState.scale <= 1.01) {
+        zoomState.scale = 1;
+        zoomState.panX = 0;
+        zoomState.panY = 0;
+      } else {
+        clampZoomPan();
+      }
+
+      img.style.transform = `translate3d(${zoomState.panX}px, ${zoomState.panY}px, 0px) scale(${zoomState.scale}) rotate(${zoomState.rotation}deg)`;
+
+      if (viewport) {
+        if (zoomState.scale > 1.05) {
+          viewport.classList.add('can-drag');
+        } else {
+          viewport.classList.remove('can-drag');
+        }
+      }
+
       if (levelBtn) {
         levelBtn.textContent = `↺ ${Math.round(zoomState.scale * 100)}%`;
       }
@@ -2839,13 +2904,30 @@
       updateZoomTransform();
     }
 
-    function zoomIn(factor = 1.3) {
-      zoomState.scale = Math.min(zoomState.maxScale, zoomState.scale * factor);
-      updateZoomTransform();
+    function zoomIn(factor = 1.35) {
+      applyZoomScale(zoomState.scale * factor);
     }
 
-    function zoomOut(factor = 1.3) {
-      zoomState.scale = Math.max(zoomState.minScale, zoomState.scale / factor);
+    function zoomOut(factor = 1.35) {
+      applyZoomScale(zoomState.scale / factor);
+    }
+
+    function applyZoomScale(newScale, focalViewportX = 0, focalViewportY = 0) {
+      const clampedScale = Math.min(zoomState.maxScale, Math.max(zoomState.minScale, newScale));
+      if (Math.abs(clampedScale - zoomState.scale) < 0.001) return;
+
+      if (clampedScale <= 1.01) {
+        zoomState.scale = 1;
+        zoomState.panX = 0;
+        zoomState.panY = 0;
+      } else {
+        // Zoom centered around focal point
+        const ratio = clampedScale / zoomState.scale;
+        zoomState.panX = focalViewportX - (focalViewportX - zoomState.panX) * ratio;
+        zoomState.panY = focalViewportY - (focalViewportY - zoomState.panY) * ratio;
+        zoomState.scale = clampedScale;
+      }
+
       updateZoomTransform();
     }
 
@@ -2866,11 +2948,12 @@
 
       if (!modal || !img) return;
 
-      // Reset zoom position and orientation
+      // Reset state
       zoomState.scale = 1;
       zoomState.panX = 0;
       zoomState.panY = 0;
       zoomState.rotation = 0;
+      zoomState.isDragging = false;
 
       img.src = images[currentDetailImageIdx];
       if (titleEl && selectedFirearm) {
@@ -2886,7 +2969,6 @@
 
       updateZoomTransform();
       modal.classList.add('active');
-      modal.focus();
     }
 
     function closePhotoZoomModal() {
@@ -2913,7 +2995,7 @@
       updateSetMainBtnState();
     }
 
-    async function rotateZoomModalPhoto(degrees = 90) {
+    function rotateZoomModalPhoto(degrees = 90) {
       zoomState.rotation = (zoomState.rotation + degrees) % 360;
       updateZoomTransform();
     }
@@ -2924,95 +3006,109 @@
       const img = document.getElementById('photoZoomImg');
       if (!viewport || !img) return;
 
-      // Mouse Wheel Zoom
+      // Smooth normalized mouse wheel zoom
       viewport.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const delta = e.deltaY;
-        const zoomDelta = delta < 0 ? 1.15 : 0.87;
-        const newScale = Math.min(zoomState.maxScale, Math.max(zoomState.minScale, zoomState.scale * zoomDelta));
-
-        // Zoom relative to pointer
         const rect = viewport.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left - rect.width / 2;
-        const mouseY = e.clientY - rect.top - rect.height / 2;
+        const focalX = e.clientX - (rect.left + rect.width / 2);
+        const focalY = e.clientY - (rect.top + rect.height / 2);
 
-        zoomState.panX -= (mouseX - zoomState.panX) * (newScale / zoomState.scale - 1);
-        zoomState.panY -= (mouseY - zoomState.panY) * (newScale / zoomState.scale - 1);
-        zoomState.scale = newScale;
+        // Normalize delta across Mac trackpads and notched scroll wheels
+        const normalizedDelta = Math.max(-100, Math.min(100, e.deltaY));
+        const factor = Math.exp(-normalizedDelta * 0.0035);
 
-        updateZoomTransform();
+        applyZoomScale(zoomState.scale * factor, focalX, focalY);
       }, { passive: false });
 
-      // Mouse Drag Pan
+      // Mouse drag to pan
       viewport.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
         if (e.target.closest('.photo-zoom-nav-btn') || e.target.closest('.photo-zoom-controls')) return;
+
         zoomState.isDragging = true;
-        zoomState.startX = e.clientX - zoomState.panX;
-        zoomState.startY = e.clientY - zoomState.panY;
-        viewport.classList.add('dragging');
+        zoomState.hasMoved = false;
+        zoomState.startX = e.clientX;
+        zoomState.startY = e.clientY;
+        zoomState.startPanX = zoomState.panX;
+        zoomState.startPanY = zoomState.panY;
+        viewport.classList.add('is-dragging');
       });
 
       window.addEventListener('mousemove', (e) => {
         if (!zoomState.isDragging) return;
-        zoomState.panX = e.clientX - zoomState.startX;
-        zoomState.panY = e.clientY - zoomState.startY;
+        const dx = e.clientX - zoomState.startX;
+        const dy = e.clientY - zoomState.startY;
+
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+          zoomState.hasMoved = true;
+        }
+
+        zoomState.panX = zoomState.startPanX + dx;
+        zoomState.panY = zoomState.startPanY + dy;
         updateZoomTransform();
       });
 
       window.addEventListener('mouseup', () => {
         if (zoomState.isDragging) {
           zoomState.isDragging = false;
-          viewport.classList.remove('dragging');
+          viewport.classList.remove('is-dragging');
         }
       });
 
-      // Double-Click / Double-Tap to toggle 2.5x Zoom
+      // Double-click toggle (1x <-> 2.5x)
       viewport.addEventListener('dblclick', (e) => {
-        if (e.target.closest('.photo-zoom-nav-btn')) return;
+        if (e.target.closest('.photo-zoom-nav-btn') || e.target.closest('.photo-zoom-controls')) return;
+        const rect = viewport.getBoundingClientRect();
+        const focalX = e.clientX - (rect.left + rect.width / 2);
+        const focalY = e.clientY - (rect.top + rect.height / 2);
+
         if (zoomState.scale > 1.2) {
           resetZoom();
         } else {
-          zoomState.scale = 2.5;
-          const rect = viewport.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left - rect.width / 2;
-          const mouseY = e.clientY - rect.top - rect.height / 2;
-          zoomState.panX = -mouseX * 1.5;
-          zoomState.panY = -mouseY * 1.5;
-          updateZoomTransform();
+          applyZoomScale(2.5, focalX, focalY);
         }
       });
 
-      // Touch Pinch-to-Zoom and Touch Pan (Mobile / Tablets)
+      // Mobile Touch Pinch & Drag
       viewport.addEventListener('touchstart', (e) => {
         if (e.touches.length === 1) {
           zoomState.isDragging = true;
-          zoomState.startX = e.touches[0].clientX - zoomState.panX;
-          zoomState.startY = e.touches[0].clientY - zoomState.panY;
+          zoomState.startX = e.touches[0].clientX;
+          zoomState.startY = e.touches[0].clientY;
+          zoomState.startPanX = zoomState.panX;
+          zoomState.startPanY = zoomState.panY;
         } else if (e.touches.length === 2) {
           zoomState.isDragging = false;
-          const dx = e.touches[0].clientX - e.touches[1].clientX;
-          const dy = e.touches[0].clientY - e.touches[1].clientY;
-          zoomState.activeTouchDist = Math.hypot(dx, dy);
+          const t1 = e.touches[0];
+          const t2 = e.touches[1];
+          const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+          zoomState.activeTouchDist = dist;
           zoomState.touchStartScale = zoomState.scale;
+
+          const rect = viewport.getBoundingClientRect();
+          const midX = (t1.clientX + t2.clientX) / 2;
+          const midY = (t1.clientY + t2.clientY) / 2;
+          zoomState.pinchCenterViewportX = midX - (rect.left + rect.width / 2);
+          zoomState.pinchCenterViewportY = midY - (rect.top + rect.height / 2);
         }
       }, { passive: false });
 
       viewport.addEventListener('touchmove', (e) => {
         if (e.touches.length === 1 && zoomState.isDragging) {
           e.preventDefault();
-          zoomState.panX = e.touches[0].clientX - zoomState.startX;
-          zoomState.panY = e.touches[0].clientY - zoomState.startY;
+          const dx = e.touches[0].clientX - zoomState.startX;
+          const dy = e.touches[0].clientY - zoomState.startY;
+          zoomState.panX = zoomState.startPanX + dx;
+          zoomState.panY = zoomState.startPanY + dy;
           updateZoomTransform();
         } else if (e.touches.length === 2) {
           e.preventDefault();
-          const dx = e.touches[0].clientX - e.touches[1].clientX;
-          const dy = e.touches[0].clientY - e.touches[1].clientY;
-          const dist = Math.hypot(dx, dy);
+          const t1 = e.touches[0];
+          const t2 = e.touches[1];
+          const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
           if (zoomState.activeTouchDist > 0) {
             const factor = dist / zoomState.activeTouchDist;
-            zoomState.scale = Math.min(zoomState.maxScale, Math.max(zoomState.minScale, zoomState.touchStartScale * factor));
-            updateZoomTransform();
+            applyZoomScale(zoomState.touchStartScale * factor, zoomState.pinchCenterViewportX, zoomState.pinchCenterViewportY);
           }
         }
       }, { passive: false });
