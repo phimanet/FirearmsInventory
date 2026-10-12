@@ -299,6 +299,90 @@
       align-items: center;
       gap: 4px;
     }
+    .card-badge-ccw {
+      position: absolute;
+      top: 42px;
+      left: 10px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: rgba(245, 158, 11, 0.22);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .card-badge-ccw svg { width: 12px; height: 12px; fill: currentColor; }
+
+    /* CCW Modal & Timeline Styles */
+    .ccw-banner {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(16, 185, 129, 0.12));
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .ccw-banner-urgent {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.18), rgba(245, 158, 11, 0.15));
+      border-color: rgba(244, 63, 94, 0.5);
+    }
+    .ccw-days-count {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .ccw-days-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+    .ccw-step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      transition: border-color 0.15s ease;
+    }
+    .ccw-step-card.completed {
+      border-color: rgba(16, 185, 129, 0.5);
+      background: rgba(16, 185, 129, 0.04);
+    }
+    .ccw-step-card.urgent {
+      border-color: rgba(245, 158, 11, 0.6);
+      background: rgba(245, 158, 11, 0.05);
+    }
+    .ccw-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.82rem;
+      flex-shrink: 0;
+    }
+    .ccw-step-card.completed .ccw-step-num {
+      background: var(--accent-emerald);
+      color: #fff;
+    }
 
     .card-content { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
     .card-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
@@ -948,6 +1032,13 @@
         <span>Insurance Report</span>
       </button>
 
+      <!-- CCW Permit Compliance & Tracking Button -->
+      <button class="btn btn-secondary" id="ccwPermitBtn" title="California CCW Permit & SDSO Renewal Tracker" style="position:relative; border-color:rgba(245,158,11,0.4); color:#fbbf24;">
+        <svg viewBox="0 0 24 24" style="fill:#fbbf24;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+        <span>CCW Permit</span>
+        <span id="ccwHeaderBadge" style="display:none; position:absolute; top:-4px; right:-4px; padding:2px 5px; font-size:0.62rem; font-weight:800; background:#f43f5e; color:#fff; border-radius:9999px; line-height:1;">EXP</span>
+      </button>
+
       <!-- Snapshot Save Button -->
       <button class="btn btn-secondary" id="snapshotBtn" title="Manual Backup Snapshot">
         <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
@@ -995,6 +1086,7 @@
   <!-- Filter Bar -->
   <div class="filter-bar" id="filterBar">
     <button class="chip active" data-type="All">All Classifications</button>
+    <button class="chip" data-type="CCW" style="color:#fbbf24; border-color:rgba(245,158,11,0.35);">🛡️ On CCW Permit</button>
     <button class="chip" data-type="Pistol">Pistols</button>
     <button class="chip" data-type="Rifle">Rifles</button>
     <button class="chip" data-type="Shotgun">Shotguns</button>
@@ -1113,6 +1205,10 @@
             <div class="detail-field">
               <span class="detail-field-label">Replacement Value</span>
               <span class="detail-field-val" id="detailReplacementValue" style="color:#34d399;">$0.00</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">CCW Permit Status</span>
+              <span class="detail-field-val" id="detailCCWStatus" style="color:#fbbf24;">-</span>
             </div>
           </div>
         </div>
@@ -1271,6 +1367,13 @@
               <label class="form-label">Purchase Date</label>
               <input type="date" class="form-control" id="formPurchaseDate">
             </div>
+            <div class="form-group" style="justify-content:center;">
+              <label class="form-label">CCW Permit Listing</label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); padding:8px 12px; border-radius:var(--radius-sm); margin-top:2px;">
+                <input type="checkbox" id="formOnCCW" style="width:18px; height:18px; accent-color:#f59e0b; cursor:pointer;">
+                <span style="font-size:0.83rem; font-weight:700; color:#fbbf24;">🛡️ Listed on CCW Permit</span>
+              </label>
+            </div>
             <div class="form-group full">
               <label class="form-label">Notes & Specifications</label>
               <textarea class="form-control" id="formNotes" placeholder="Upgrades, zero distance, configuration notes..."></textarea>
@@ -1416,6 +1519,220 @@
           </thead>
           <tbody id="insuranceScheduleTbody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CCW PERMIT COMPLIANCE & RENEWAL MODAL ================= -->
+  <div class="modal-overlay" id="ccwModal">
+    <div class="modal-content" style="max-width:920px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 class="modal-title">🛡️ California CCW Permit Compliance & Renewal</h2>
+          <span class="badge-tag" id="ccwStatusBadge" style="background:rgba(245,158,11,0.2); color:#fbbf24; border-color:rgba(245,158,11,0.4);">SDSO Active</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn btn-secondary" id="sendCcwTestEmailBtn" onclick="sendTestCcwAlert()" title="Send test reminder email to configured Gmail address" style="border-color:rgba(59,130,246,0.4); color:#93c5fd;">
+            📧 Send Test Alert
+          </button>
+          <button class="modal-close" onclick="closeCcwModal()">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <!-- Expiration Countdown & Renewal Banner -->
+        <div class="ccw-banner" id="ccwBanner">
+          <div>
+            <div style="font-size:0.78rem; text-transform:uppercase; font-weight:700; color:#fbbf24; letter-spacing:0.04em;">Permit Renewal Schedule</div>
+            <div style="font-size:1.15rem; font-weight:700; margin-top:2px;" id="ccwAgencyText">San Diego County Sheriff's Department (SDSO)</div>
+            <div style="font-size:0.83rem; color:var(--text-muted); margin-top:4px;">
+              Permit #: <strong id="ccwSummaryPermitNum" style="color:var(--text-main);">-</strong> &bull;
+              Expires: <strong id="ccwSummaryExpDate" style="color:var(--text-main);">-</strong>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div class="ccw-days-count" id="ccwDaysRemainingVal" style="color:#fbbf24;">--</div>
+            <div class="ccw-days-label" id="ccwDaysRemainingLabel">Days Until Expiration</div>
+          </div>
+        </div>
+
+        <!-- 3 Sequential Critical Renewal Steps / Checklist -->
+        <div>
+          <h3 class="section-title">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            Critical Renewal Milestones (San Diego Sheriff Workflow)
+          </h3>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">
+            Sequential compliance: <strong>(1) LiveScan fingerprinting</strong> must be submitted before class, <strong>(2) CCW training & qualification</strong> must be completed, then <strong>(3) all documents must be uploaded to Permitium 90 days before expiration</strong>.
+          </p>
+
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <!-- Step 1: LiveScan -->
+            <div class="ccw-step-card" id="stepCardLiveScan">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div class="ccw-step-num">1</div>
+                  <div>
+                    <div style="font-weight:700; font-size:0.95rem;">LiveScan Fingerprinting</div>
+                    <div style="font-size:0.78rem; color:var(--text-muted);">Required fingerprint background check prior to renewal qualification class</div>
+                  </div>
+                </div>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; cursor:pointer; color:#34d399;">
+                  <input type="checkbox" id="ccwLiveScanCompleted" style="width:16px; height:16px; accent-color:#10b981;"> Completed
+                </label>
+              </div>
+              <div style="display:grid; grid-template-columns:180px 1fr; gap:10px;">
+                <div>
+                  <label class="form-label">Date Completed</label>
+                  <input type="date" class="form-control" id="ccwLiveScanDate">
+                </div>
+                <div>
+                  <label class="form-label">LiveScan ATI / Location Notes</label>
+                  <input type="text" class="form-control" id="ccwLiveScanNotes" placeholder="ATI tracking number, livescan operator location...">
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: CCW Training -->
+            <div class="ccw-step-card" id="stepCardTraining">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div class="ccw-step-num">2</div>
+                  <div>
+                    <div style="font-weight:700; font-size:0.95rem;">CCW Renewal Class & Live-Fire Qualification</div>
+                    <div style="font-size:0.78rem; color:var(--text-muted);">State-certified 8-hour renewal course & shooting qualification for all listed handguns</div>
+                  </div>
+                </div>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; cursor:pointer; color:#34d399;">
+                  <input type="checkbox" id="ccwTrainingCompleted" style="width:16px; height:16px; accent-color:#10b981;"> Completed
+                </label>
+              </div>
+              <div style="display:grid; grid-template-columns:180px 100px 1fr; gap:10px;">
+                <div>
+                  <label class="form-label">Class Date</label>
+                  <input type="date" class="form-control" id="ccwTrainingDate">
+                </div>
+                <div>
+                  <label class="form-label">Hours</label>
+                  <input type="number" class="form-control" id="ccwTrainingHours" min="1" max="24" value="8">
+                </div>
+                <div>
+                  <label class="form-label">Instructor / Academy / Range Notes</label>
+                  <input type="text" class="form-control" id="ccwTrainingNotes" placeholder="Certified Instructor name, range location, certificate #...">
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: SDSO Upload (90 Days Deadline) -->
+            <div class="ccw-step-card urgent" id="stepCardSdsoUpload">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div class="ccw-step-num" style="background:#f59e0b; color:#000;">3</div>
+                  <div>
+                    <div style="font-weight:700; font-size:0.95rem; color:#fbbf24;">Upload Documents to San Diego Sheriff (Permitium)</div>
+                    <div style="font-size:0.78rem; color:#fdba74;"><strong>CRITICAL DEADLINE:</strong> Must submit all documents & training certificates exactly 90 days before permit expires</div>
+                  </div>
+                </div>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; cursor:pointer; color:#34d399;">
+                  <input type="checkbox" id="ccwSdsoUploadCompleted" style="width:16px; height:16px; accent-color:#10b981;"> Uploaded
+                </label>
+              </div>
+              <div style="display:grid; grid-template-columns:180px 1fr; gap:10px;">
+                <div>
+                  <label class="form-label">Upload Submission Date</label>
+                  <input type="date" class="form-control" id="ccwSdsoUploadDate">
+                </div>
+                <div>
+                  <label class="form-label">Permitium Application / Order Number</label>
+                  <input type="text" class="form-control" id="ccwSdsoUploadNotes" placeholder="Permitium Order #, receipt confirmation, SDSO notes...">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Permit Parameters & Email Alert Preferences -->
+        <div>
+          <h3 class="section-title">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            Permit Information & Automated Gmail Alerts
+          </h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Permit Number</label>
+              <input type="text" class="form-control" id="ccwPermitNumber" placeholder="e.g. CCW-2024-SD-0941">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Permit Holder Name</label>
+              <input type="text" class="form-control" id="ccwHolderName" placeholder="Full Legal Name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Issuing Agency</label>
+              <input type="text" class="form-control" id="ccwIssuingAgency" value="San Diego County Sheriff's Department">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Permit Status</label>
+              <select class="form-control" id="ccwPermitStatus">
+                <option value="Active">Active</option>
+                <option value="Renewal Pending">Renewal Pending</option>
+                <option value="Expired">Expired</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Issue Date</label>
+              <input type="date" class="form-control" id="ccwIssueDate">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="color:#fbbf24; font-weight:700;">Expiration Date (Renewal Base)</label>
+              <input type="date" class="form-control" id="ccwExpirationDate" style="border-color:rgba(245,158,11,0.5);">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Alert Recipient Email (Gmail)</label>
+              <input type="email" class="form-control" id="ccwRecipientEmail" value="phimane@gmail.com" placeholder="user@gmail.com">
+            </div>
+            <div class="form-group" style="justify-content:center;">
+              <label class="form-label">Automated Email Reminders</label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:4px;">
+                <input type="checkbox" id="ccwEmailAlertsEnabled" checked style="width:18px; height:18px; accent-color:#10b981;">
+                <span style="font-size:0.82rem; font-weight:600; color:#34d399;">Notify at 120, 90, 60, 30 days & monthly</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Firearms on CCW Permit Table -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 class="section-title" style="margin-bottom:0;">
+              <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+              Firearms Registered On This Permit
+            </h3>
+            <span id="ccwGunsCountBadge" style="font-size:0.8rem; font-weight:700; color:#fbbf24;">0 Firearms</span>
+          </div>
+          <table class="clean-table" id="ccwGunsTable">
+            <thead>
+              <tr>
+                <th>Make & Model</th>
+                <th>Caliber</th>
+                <th>Serial Number</th>
+                <th>Round Count</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="ccwGunsTbody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px; border-top:1px solid var(--border-color); padding-top:16px;">
+          <button type="button" class="btn btn-ghost" onclick="closeCcwModal()">Close</button>
+          <button type="button" class="btn btn-primary" onclick="saveCcwSettings()" id="saveCcwBtn">
+            💾 Save CCW Information
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1614,7 +1931,9 @@
       const search = document.getElementById('searchInput').value.trim().toLowerCase();
       let list = firearms;
 
-      if (currentFilter !== 'All') {
+      if (currentFilter === 'CCW') {
+        list = list.filter(f => f.onCCW === true);
+      } else if (currentFilter !== 'All') {
         list = list.filter(f => f.type === currentFilter);
       }
 
@@ -1663,11 +1982,19 @@
             </button>`
           : '';
 
+        const ccwBadgeHtml = f.onCCW
+          ? `<span class="card-badge-ccw" title="Listed on California CCW Permit">
+              <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+              <span>CCW</span>
+            </span>`
+          : '';
+
         card.innerHTML = `
           <div class="card-photo-wrapper">
             ${photoHtml}
             <span class="card-badge-type">${f.type || 'Firearm'}</span>
             <span class="card-badge-rounds">${formatNumber(f.roundCount || 0)} Rds</span>
+            ${ccwBadgeHtml}
             ${zoomBadgeHtml}
           </div>
           <div class="card-content">
@@ -1758,6 +2085,14 @@
       document.getElementById('detailRoundCount').textContent = `${formatNumber(selectedFirearm.roundCount || 0)} Rds`;
       document.getElementById('detailPurchasePrice').textContent = formatCurrency(selectedFirearm.purchasePrice || 0);
       document.getElementById('detailReplacementValue').textContent = formatCurrency(selectedFirearm.replacementValue || 0);
+      const ccwStatusEl = document.getElementById('detailCCWStatus');
+      if (ccwStatusEl) {
+        if (selectedFirearm.onCCW) {
+          ccwStatusEl.innerHTML = '<span style="color:#fbbf24; font-weight:700;">🛡️ Yes &bull; On Permit</span>';
+        } else {
+          ccwStatusEl.innerHTML = '<span style="color:var(--text-dim);">No (Not on permit)</span>';
+        }
+      }
 
       // Notes
       const notesEl = document.getElementById('detailNotes');
@@ -1999,6 +2334,7 @@
       document.getElementById('formReplacementValue').value = item ? (item.replacementValue || '') : '';
       document.getElementById('formPurchaseDate').value = item ? (item.purchaseDate || '') : '';
       document.getElementById('formNotes').value = item ? (item.notes || '') : '';
+      document.getElementById('formOnCCW').checked = item ? Boolean(item.onCCW) : false;
 
       formImages = item ? [...(item.images || [])] : [];
       formAccessories = item ? JSON.parse(JSON.stringify(item.accessories || [])) : [];
@@ -2964,6 +3300,7 @@
         replacementValue: parseFloat(document.getElementById('formReplacementValue').value) || 0,
         purchaseDate: document.getElementById('formPurchaseDate').value,
         notes: document.getElementById('formNotes').value.trim(),
+        onCCW: document.getElementById('formOnCCW').checked,
         images: formImages,
         accessories: formAccessories.filter(a => a.name && a.name.trim()),
         sources: formSources.filter(s => s.name && s.name.trim()),
@@ -3405,8 +3742,311 @@
       }
     });
 
+    // ----------------------------------------------------------------------
+    // CCW Permit Compliance, Workflow Tracking & Email Alert Integration
+    // ----------------------------------------------------------------------
+    let ccwData = null;
+
+    async function fetchCcwData() {
+      try {
+        const res = await fetch('/api/ccw');
+        const data = await res.json();
+        if (data.success && data.ccw) {
+          ccwData = data.ccw;
+          updateCcwHeaderBadge();
+        }
+      } catch (err) {
+        console.error('Failed to fetch CCW data:', err);
+      }
+    }
+
+    function updateCcwHeaderBadge() {
+      const badge = document.getElementById('ccwHeaderBadge');
+      if (!badge || !ccwData) return;
+      const days = ccwData.daysRemaining;
+      if (days !== null && days !== undefined && days <= 120) {
+        badge.style.display = 'inline-block';
+        if (days < 0) {
+          badge.textContent = 'EXPIRED';
+          badge.style.background = '#f43f5e';
+        } else if (days <= 90) {
+          badge.textContent = `${days}d (URGENT)`;
+          badge.style.background = '#f43f5e';
+        } else {
+          badge.textContent = `${days}d`;
+          badge.style.background = '#f59e0b';
+        }
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    async function openCcwModal() {
+      await fetchCcwData();
+      if (!ccwData) return;
+
+      // Populate summary header & countdown
+      const banner = document.getElementById('ccwBanner');
+      const daysCountEl = document.getElementById('ccwDaysRemainingVal');
+      const daysLabelEl = document.getElementById('ccwDaysRemainingLabel');
+      const badgeStatusEl = document.getElementById('ccwStatusBadge');
+
+      document.getElementById('ccwAgencyText').textContent = ccwData.issuingAgency || 'San Diego County Sheriff\'s Department (SDSO)';
+      document.getElementById('ccwSummaryPermitNum').textContent = ccwData.permitNumber || 'Not Entered';
+      document.getElementById('ccwSummaryExpDate').textContent = ccwData.expirationDate || 'Not Set';
+
+      const days = ccwData.daysRemaining;
+      if (days !== null && days !== undefined) {
+        daysCountEl.textContent = days >= 0 ? days : Math.abs(days);
+        if (days < 0) {
+          daysLabelEl.textContent = 'Days Overdue (Expired)';
+          daysCountEl.style.color = '#fb7185';
+          banner.classList.add('ccw-banner-urgent');
+          badgeStatusEl.textContent = 'Expired';
+          badgeStatusEl.style.background = 'rgba(244,63,94,0.2)';
+          badgeStatusEl.style.color = '#fb7185';
+        } else if (days <= 90) {
+          daysLabelEl.textContent = 'Days Remaining (SDSO Upload Due!)';
+          daysCountEl.style.color = '#f43f5e';
+          banner.classList.add('ccw-banner-urgent');
+          badgeStatusEl.textContent = 'Action Required';
+          badgeStatusEl.style.background = 'rgba(244,63,94,0.2)';
+          badgeStatusEl.style.color = '#fb7185';
+        } else if (days <= 120) {
+          daysLabelEl.textContent = 'Days Remaining (Renewal Window Open)';
+          daysCountEl.style.color = '#fbbf24';
+          banner.classList.remove('ccw-banner-urgent');
+          badgeStatusEl.textContent = 'Renew Window';
+          badgeStatusEl.style.background = 'rgba(245,158,11,0.2)';
+          badgeStatusEl.style.color = '#fbbf24';
+        } else {
+          daysLabelEl.textContent = 'Days Until Expiration';
+          daysCountEl.style.color = '#34d399';
+          banner.classList.remove('ccw-banner-urgent');
+          badgeStatusEl.textContent = 'Compliant / Active';
+          badgeStatusEl.style.background = 'rgba(16,185,129,0.2)';
+          badgeStatusEl.style.color = '#34d399';
+        }
+      } else {
+        daysCountEl.textContent = '--';
+        daysLabelEl.textContent = 'Set Expiration Date Below';
+        daysCountEl.style.color = 'var(--text-muted)';
+        banner.classList.remove('ccw-banner-urgent');
+      }
+
+      // Populate Checklist 1: LiveScan
+      document.getElementById('ccwLiveScanCompleted').checked = Boolean(ccwData.liveScanCompleted);
+      document.getElementById('ccwLiveScanDate').value = ccwData.liveScanDate || '';
+      document.getElementById('ccwLiveScanNotes').value = ccwData.liveScanNotes || '';
+      updateStepCardStyle('stepCardLiveScan', ccwData.liveScanCompleted);
+
+      // Populate Checklist 2: Training
+      document.getElementById('ccwTrainingCompleted').checked = Boolean(ccwData.trainingCompleted);
+      document.getElementById('ccwTrainingDate').value = ccwData.trainingDate || '';
+      document.getElementById('ccwTrainingHours').value = ccwData.trainingHours || 8;
+      document.getElementById('ccwTrainingNotes').value = ccwData.trainingNotes || '';
+      updateStepCardStyle('stepCardTraining', ccwData.trainingCompleted);
+
+      // Populate Checklist 3: SDSO Upload
+      document.getElementById('ccwSdsoUploadCompleted').checked = Boolean(ccwData.sdsoUploadCompleted);
+      document.getElementById('ccwSdsoUploadDate').value = ccwData.sdsoUploadDate || '';
+      document.getElementById('ccwSdsoUploadNotes').value = ccwData.sdsoUploadNotes || '';
+      updateStepCardStyle('stepCardSdsoUpload', ccwData.sdsoUploadCompleted);
+
+      // Populate Permit Parameters & Email
+      document.getElementById('ccwPermitNumber').value = ccwData.permitNumber || '';
+      document.getElementById('ccwHolderName').value = ccwData.holderName || '';
+      document.getElementById('ccwIssuingAgency').value = ccwData.issuingAgency || 'San Diego County Sheriff\'s Department';
+      document.getElementById('ccwPermitStatus').value = ccwData.status || 'Active';
+      document.getElementById('ccwIssueDate').value = ccwData.issueDate || '';
+      document.getElementById('ccwExpirationDate').value = ccwData.expirationDate || '';
+      document.getElementById('ccwRecipientEmail').value = ccwData.recipientEmail || 'phimane@gmail.com';
+      document.getElementById('ccwEmailAlertsEnabled').checked = Boolean(ccwData.emailAlertsEnabled);
+
+      // Render firearms on CCW Permit
+      renderCcwGunsTable();
+
+      document.getElementById('ccwModal').classList.add('active');
+    }
+
+    function closeCcwModal() {
+      document.getElementById('ccwModal').classList.remove('active');
+    }
+
+    function updateStepCardStyle(cardId, isCompleted) {
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      if (isCompleted) {
+        card.classList.add('completed');
+      } else {
+        card.classList.remove('completed');
+      }
+    }
+
+    // Dynamic checklist checkbox handlers
+    document.getElementById('ccwLiveScanCompleted').onchange = (e) => {
+      updateStepCardStyle('stepCardLiveScan', e.target.checked);
+      if (e.target.checked && !document.getElementById('ccwLiveScanDate').value) {
+        document.getElementById('ccwLiveScanDate').value = new Date().toISOString().split('T')[0];
+      }
+    };
+
+    document.getElementById('ccwTrainingCompleted').onchange = (e) => {
+      updateStepCardStyle('stepCardTraining', e.target.checked);
+      if (e.target.checked && !document.getElementById('ccwTrainingDate').value) {
+        document.getElementById('ccwTrainingDate').value = new Date().toISOString().split('T')[0];
+      }
+    };
+
+    document.getElementById('ccwSdsoUploadCompleted').onchange = (e) => {
+      updateStepCardStyle('stepCardSdsoUpload', e.target.checked);
+      if (e.target.checked && !document.getElementById('ccwSdsoUploadDate').value) {
+        document.getElementById('ccwSdsoUploadDate').value = new Date().toISOString().split('T')[0];
+      }
+    };
+
+    // Render registered CCW firearms table inside CCW modal
+    function renderCcwGunsTable() {
+      const tbody = document.getElementById('ccwGunsTbody');
+      tbody.innerHTML = '';
+      const ccwGuns = firearms.filter(f => f.onCCW === true);
+      document.getElementById('ccwGunsCountBadge').textContent = `${ccwGuns.length} Firearm${ccwGuns.length === 1 ? '' : 's'}`;
+
+      if (ccwGuns.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center; padding:16px; color:var(--text-dim);">
+              No firearms currently marked as listed on your CCW permit. Edit any firearm or check "Listed on CCW Permit" to associate it.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      ccwGuns.forEach(f => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${f.make} ${f.model}</strong></td>
+          <td><span class="tag-pill" style="color:#93c5fd; border-color:rgba(59,130,246,0.3);">${f.caliber || '-'}</span></td>
+          <td><code>${formatSerial(f.serialNumber)}</code></td>
+          <td><span style="color:#34d399; font-weight:600;">${formatNumber(f.roundCount || 0)} Rds</span></td>
+          <td>
+            <button type="button" class="btn btn-secondary" onclick="toggleCcwFirearmPermit('${f.id}', false)" style="padding:2px 8px; font-size:0.72rem; color:#fb7185;">
+              Remove Tag
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Toggle a firearm's onCCW permit flag directly
+    async function toggleCcwFirearmPermit(firearmId, isOnPermit) {
+      try {
+        const res = await fetch(`/api/firearms/${firearmId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ onCCW: isOnPermit })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Updated CCW listing for firearm`);
+          await fetchFirearms();
+          renderCcwGunsTable();
+        }
+      } catch (err) {
+        showToast('Failed to update firearm permit status');
+      }
+    }
+
+    // Save CCW Settings & Checklist to API
+    async function saveCcwSettings() {
+      const saveBtn = document.getElementById('saveCcwBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      const payload = {
+        permitNumber: document.getElementById('ccwPermitNumber').value.trim(),
+        holderName: document.getElementById('ccwHolderName').value.trim(),
+        issuingAgency: document.getElementById('ccwIssuingAgency').value.trim(),
+        status: document.getElementById('ccwPermitStatus').value,
+        issueDate: document.getElementById('ccwIssueDate').value,
+        expirationDate: document.getElementById('ccwExpirationDate').value,
+        recipientEmail: document.getElementById('ccwRecipientEmail').value.trim(),
+        emailAlertsEnabled: document.getElementById('ccwEmailAlertsEnabled').checked,
+
+        // Milestones
+        liveScanCompleted: document.getElementById('ccwLiveScanCompleted').checked,
+        liveScanDate: document.getElementById('ccwLiveScanDate').value,
+        liveScanNotes: document.getElementById('ccwLiveScanNotes').value.trim(),
+
+        trainingCompleted: document.getElementById('ccwTrainingCompleted').checked,
+        trainingDate: document.getElementById('ccwTrainingDate').value,
+        trainingHours: parseInt(document.getElementById('ccwTrainingHours').value) || 8,
+        trainingNotes: document.getElementById('ccwTrainingNotes').value.trim(),
+
+        sdsoUploadCompleted: document.getElementById('ccwSdsoUploadCompleted').checked,
+        sdsoUploadDate: document.getElementById('ccwSdsoUploadDate').value,
+        sdsoUploadNotes: document.getElementById('ccwSdsoUploadNotes').value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/ccw', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          ccwData = data.ccw;
+          updateCcwHeaderBadge();
+          showToast('CCW Permit & Checklist settings saved');
+          closeCcwModal();
+        } else {
+          showToast('Failed to save CCW settings');
+        }
+      } catch (err) {
+        showToast('Error saving CCW parameters');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Save CCW Information';
+      }
+    }
+
+    // Send Test CCW Renewal Email Alert via Gmail SMTP
+    async function sendTestCcwAlert() {
+      const emailInput = document.getElementById('ccwRecipientEmail');
+      const recipient = emailInput ? emailInput.value.trim() : 'phimane@gmail.com';
+      const btn = document.getElementById('sendCcwTestEmailBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Sending Alert...';
+
+      try {
+        const res = await fetch('/api/ccw/test-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: recipient })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`📧 Test alert sent to ${recipient}`);
+        } else {
+          showToast(`Email error: ${data.details && data.details.message ? data.details.message : 'Check SMTP credentials'}`);
+        }
+      } catch (err) {
+        showToast('Failed to send test email');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📧 Send Test Alert';
+      }
+    }
+
+    // Header CCW button binding
+    document.getElementById('ccwPermitBtn').onclick = openCcwModal;
+
     // Initialize
     fetchFirearms();
+    fetchCcwData();
   </script>
 </body>
 </html>

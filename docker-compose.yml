@@ -21,6 +21,7 @@ services:
       - ./html:/app/html:ro
       - ./data:/app/data
       - ./uploads:/app/uploads
+      - ./.env:/app/.env:ro
     environment:
       - PORT=5000
     command: python3 /app/html/server.py

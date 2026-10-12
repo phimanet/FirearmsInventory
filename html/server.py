@@ -17,7 +17,11 @@ import time
 import uuid
 import base64
 import threading
-from datetime import datetime, timezone
+import ssl
+import smtplib
+from datetime import datetime, timezone, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -158,6 +162,30 @@ def get_seed_data():
             "Range Bag",
             "Secure Lockbox"
         ],
+        "ccw": {
+            "permitNumber": "",
+            "issuingAgency": "San Diego County Sheriff's Department",
+            "expirationDate": "",
+            "issueDate": "",
+            "holderName": "Phimane",
+            "status": "Active",
+            "emailAlertsEnabled": True,
+            "recipientEmail": "phimane@gmail.com",
+            "liveScanCompleted": False,
+            "liveScanDate": "",
+            "liveScanNotes": "",
+            "trainingCompleted": False,
+            "trainingDate": "",
+            "trainingHours": 8,
+            "trainingNotes": "",
+            "sdsoUploadCompleted": False,
+            "sdsoUploadDate": "",
+            "sdsoUploadNotes": "",
+            "checklistNotes": "",
+            "qualifyingGuns": [],
+            "lastAlertSent": None,
+            "alertHistory": []
+        },
         "deletedIds": []
     }
 
@@ -206,19 +234,254 @@ def backup_worker():
         except Exception as e:
             print(f"[BACKUP] Error: {e}")
 
-def code_reload_watcher():
-    """Monitors server.py for changes and auto-restarts Python process instantly."""
-    script_file = os.path.abspath(__file__)
-    last_mtime = os.stat(script_file).st_mtime
+def load_env():
+    env_vars = {}
+    candidates = [
+        os.path.join(os.path.dirname(__file__), '.env'),
+        os.path.join(os.path.dirname(__file__), '..', '.env'),
+        '/app/.env',
+        '/docker/FirearmsInventory/.env',
+        '/docker/FamilyCalender/.env'
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            k, v = line.split('=', 1)
+                            env_vars[k.strip()] = v.strip().replace('"', '').replace("'", "")
+                break
+            except Exception:
+                pass
+    return env_vars
+
+def send_smtp_email(to_emails, subject, html_content):
+    env = load_env()
+    gmail_user = env.get('GMAIL_USER') or os.environ.get('GMAIL_USER') or 'phimane@gmail.com'
+    app_password = env.get('GMAIL_APP_PASSWORD') or os.environ.get('GMAIL_APP_PASSWORD') or ''
+    app_password = app_password.replace(" ", "")
+
+    if not app_password:
+        return {"success": False, "error": "Missing GMAIL_APP_PASSWORD in .env file."}
+
+    if isinstance(to_emails, str):
+        to_emails = [e.strip() for e in to_emails.split(',') if e.strip()]
+
+    if not to_emails:
+        return {"success": False, "error": "No recipient email address provided."}
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"Armory Vault • CCW Monitor <{gmail_user}>"
+    msg["To"] = ", ".join(to_emails)
+
+    msg.attach(MIMEText(html_content, "html"))
+
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context, timeout=15) as server:
+            server.login(gmail_user, app_password)
+            server.sendmail(gmail_user, to_emails, msg.as_string())
+        return {"success": True, "recipients": to_emails, "message": f"Email delivered to {', '.join(to_emails)}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def build_ccw_reminder_email(ccw, days_left, urgency_level="normal"):
+    """Generates an executive, mobile-friendly HTML alert detailing renewal milestones."""
+    exp_date_str = ccw.get("expirationDate") or "Not set"
+    permit_num = ccw.get("permitNumber") or "On File"
+    holder = ccw.get("holderName") or "Phimane"
+    agency = ccw.get("issuingAgency") or "San Diego County Sheriff's Department"
+
+    # Status checkmarks
+    livescan_icon = "✅ Completed" if ccw.get("liveScanCompleted") else "⚠️ Pending Action"
+    training_icon = "✅ Completed" if ccw.get("trainingCompleted") else "⚠️ Pending Action"
+    upload_icon = "✅ Uploaded" if ccw.get("sdsoUploadCompleted") else "⚠️ Pending Action (Deadline: 90 Days Prior)"
+
+    header_color = "#f43f5e" if days_left <= 60 else ("#f59e0b" if days_left <= 90 else "#0284c7")
+    badge_text = "URGENT ACTION REQUIRED" if days_left <= 60 else ("CRITICAL RENEWAL WINDOW" if days_left <= 90 else "CCW RENEWAL NOTICE")
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCW Permit Renewal Alert</title>
+</head>
+<body style="margin:0; padding:0; background-color:#0b0f19; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#e2e8f0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0b0f19; padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="600" cellpadding="0" cellspacing="0" style="max-width:600px; background-color:#111827; border:1px solid #1f2937; border-radius:12px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:{header_color}; padding:20px 24px; text-align:left;">
+              <span style="display:inline-block; font-size:11px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; background:rgba(0,0,0,0.25); color:#ffffff; padding:3px 8px; border-radius:4px; margin-bottom:8px;">{badge_text}</span>
+              <h1 style="margin:0; font-size:22px; font-weight:800; color:#ffffff; letter-spacing:-0.02em;">CCW Permit Renewal Alert</h1>
+              <p style="margin:4px 0 0 0; font-size:14px; color:rgba(255,255,255,0.9);">{days_left} Days Remaining Until Expiration ({exp_date_str})</p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:24px;">
+              <p style="margin:0 0 16px 0; font-size:15px; line-height:1.5; color:#cbd5e1;">
+                Hello <strong>{holder}</strong>, your California CCW permit with the <strong>{agency}</strong> will expire in <strong style="color:#f43f5e;">{days_left} days</strong>.
+              </p>
+
+              <!-- Overview Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#1e293b; border:1px solid #334155; border-radius:8px; margin-bottom:20px;">
+                <tr>
+                  <td style="padding:16px;">
+                    <table width="100%" cellpadding="6" cellspacing="0" style="font-size:13px;">
+                      <tr>
+                        <td style="color:#94a3b8; width:40%;">Permit Number:</td>
+                        <td style="color:#f8fafc; font-weight:600;">{permit_num}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#94a3b8;">Expiration Date:</td>
+                        <td style="color:#f43f5e; font-weight:700;">{exp_date_str}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#94a3b8;">Issuing Agency:</td>
+                        <td style="color:#f8fafc;">{agency}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Required Steps Checklist -->
+              <h2 style="margin:0 0 12px 0; font-size:16px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.04em;">Critical Renewal Protocol:</h2>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:20px;">
+                <!-- Step 1 -->
+                <tr>
+                  <td style="padding:12px; background-color:#1e293b; border-bottom:1px solid #334155; border-radius:6px 6px 0 0;">
+                    <div style="font-size:14px; font-weight:700; color:#ffffff;">1. LiveScan Fingerprinting</div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:2px;">Complete official LiveScan required prior to the CCW renewal course.</div>
+                    <div style="margin-top:6px; font-size:12px; font-weight:600; color:{'#34d399' if ccw.get('liveScanCompleted') else '#f59e0b'};">{livescan_icon}</div>
+                  </td>
+                </tr>
+                <!-- Step 2 -->
+                <tr>
+                  <td style="padding:12px; background-color:#1e293b; border-bottom:1px solid #334155;">
+                    <div style="font-size:14px; font-weight:700; color:#ffffff;">2. CCW Renewal Class & Qualification</div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:2px;">Complete approved 8-hour CCW retraining course and live-fire shooting qualification.</div>
+                    <div style="margin-top:6px; font-size:12px; font-weight:600; color:{'#34d399' if ccw.get('trainingCompleted') else '#f59e0b'};">{training_icon}</div>
+                  </td>
+                </tr>
+                <!-- Step 3 -->
+                <tr>
+                  <td style="padding:12px; background-color:#1e293b; border-radius:0 0 6px 6px;">
+                    <div style="font-size:14px; font-weight:700; color:#ffffff;">3. Upload Documents to San Diego Sheriff's Dept (90 Days Prior)</div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:2px;">Submit certificates, training docs, and application directly through Permitium at least 90 days before expiration.</div>
+                    <div style="margin-top:6px; font-size:12px; font-weight:600; color:{'#34d399' if ccw.get('sdsoUploadCompleted') else '#f59e0b'};">{upload_icon}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Call to Action -->
+              <div style="text-align:center; padding:12px 0 8px 0;">
+                <a href="http://192.168.72.10:8186" style="display:inline-block; background-color:#10b981; color:#ffffff; text-decoration:none; font-weight:700; font-size:14px; padding:12px 24px; border-radius:6px; box-shadow:0 4px 12px rgba(16,185,129,0.3);">Open Armory Vault CCW Dashboard</a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#0f172a; border-top:1px solid #1e293b; padding:16px 24px; text-align:center; font-size:12px; color:#64748b;">
+              Armory Vault Automated CCW Compliance System • Live on Port 8186<br>
+              Automated notifications occur at 120, 90, 60, and 30 days prior to permit expiration.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+    return html
+
+def check_and_send_ccw_reminders(force=False, test_recipient=None):
+    """
+    Checks CCW expiration against 120, 90, 60, 30-day thresholds and dispatches Gmail notifications.
+    """
+    db = load_db()
+    ccw = db.get("ccw", {})
+    if not ccw:
+        return {"status": "no_ccw_data"}
+
+    if not ccw.get("emailAlertsEnabled", True) and not force:
+        return {"status": "alerts_disabled"}
+
+    exp_str = ccw.get("expirationDate")
+    if not exp_str:
+        return {"status": "no_expiration_date"}
+
+    try:
+        exp_date = datetime.strptime(exp_str, "%Y-%m-%d").date()
+    except Exception:
+        return {"status": "invalid_date_format"}
+
+    today = datetime.now().date()
+    days_left = (exp_date - today).days
+
+    recipient = test_recipient or ccw.get("recipientEmail") or "phimane@gmail.com"
+
+    # Threshold checks
+    should_send = force
+    trigger_reason = "Manual Test / Trigger" if force else ""
+
+    if not force:
+        # Cadence: 120 days, and every 30 days thereafter (120, 90, 60, 30, and <= 15)
+        # Avoid duplicate sending on the same milestone day
+        history = ccw.get("alertHistory", [])
+        already_sent_days = [h.get("daysLeft") for h in history if h.get("date") == today.isoformat()]
+
+        if days_left <= 120 and days_left > 0:
+            if days_left not in already_sent_days:
+                # Check 120, 90, 60, 30 or any 30-day interval
+                if days_left in [120, 90, 60, 30] or (days_left < 30 and days_left % 7 == 0) or days_left == 1:
+                    should_send = True
+                    trigger_reason = f"{days_left}-Day Expiration Milestone"
+
+    if should_send:
+        subject = f"⚠️ CCW Renewal Alert: {days_left} Days Remaining Until Expiration ({exp_str})"
+        html = build_ccw_reminder_email(ccw, days_left)
+        result = send_smtp_email([recipient], subject, html)
+
+        if result.get("success"):
+            now_iso = datetime.now(timezone.utc).isoformat() + "Z"
+            ccw["lastAlertSent"] = now_iso
+            ccw.setdefault("alertHistory", []).append({
+                "date": today.isoformat(),
+                "timestamp": now_iso,
+                "daysLeft": days_left,
+                "recipient": recipient,
+                "reason": trigger_reason
+            })
+            # Keep history to last 20
+            if len(ccw["alertHistory"]) > 20:
+                ccw["alertHistory"] = ccw["alertHistory"][-20:]
+            save_db(db)
+            return {"status": "sent", "daysLeft": days_left, "recipient": recipient, "result": result}
+        else:
+            return {"status": "failed", "error": result.get("error")}
+
+    return {"status": "skipped", "daysLeft": days_left}
+
+def ccw_reminder_worker():
+    """Daily background worker monitoring CCW expiration and sending renewal emails."""
     while True:
         try:
-            time.sleep(3)
-            current_mtime = os.stat(script_file).st_mtime
-            if current_mtime != last_mtime:
-                print("[RELOAD] Detected change in server.py! Restarting process...")
-                os.execv(sys.executable, [sys.executable] + sys.argv)
-        except Exception:
-            pass
+            # Check every 6 hours (21600 seconds)
+            time.sleep(21600)
+            check_and_send_ccw_reminders(force=False)
+        except Exception as e:
+            print(f"[CCW WORKER] Error: {e}")
 
 class RequestHandler(BaseHTTPRequestHandler):
     def is_origin_allowed(self, origin):
@@ -334,6 +597,22 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.send_error_json(404, "Firearm not found")
             return
 
+        if path == "/api/ccw":
+            db = load_db()
+            ccw = db.get("ccw", {})
+            # Enrich with active daysLeft calculation
+            days_left = None
+            exp_str = ccw.get("expirationDate")
+            if exp_str:
+                try:
+                    exp_date = datetime.strptime(exp_str, "%Y-%m-%d").date()
+                    days_left = (exp_date - datetime.now().date()).days
+                except Exception:
+                    pass
+            ccw["daysRemaining"] = days_left
+            self.send_json(200, {"success": True, "ccw": ccw})
+            return
+
         if path == "/api/insurance-report":
             db = load_db()
             items = db.get("firearms", [])
@@ -407,6 +686,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 "replacementValue": float(body.get("replacementValue") or 0),
                 "roundCount": int(body.get("roundCount") or 0),
                 "notes": body.get("notes", "").strip(),
+                "onCCW": bool(body.get("onCCW", False)),
                 "images": body.get("images", []),
                 "accessories": body.get("accessories", []),
                 "sources": body.get("sources", []),
@@ -467,11 +747,68 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_json(200, {"success": True, "snapshot": f"firearms_manual_{timestamp}.json"})
             return
 
+        if path == "/api/ccw/test-email":
+            body = self.parse_json_body() or {}
+            recipient = body.get("recipient")
+            res = check_and_send_ccw_reminders(force=True, test_recipient=recipient)
+            self.send_json(200, {"success": res.get("status") == "sent", "details": res})
+            return
+
         self.send_error_json(404, "Endpoint not found")
 
     def do_PUT(self):
         url = urlparse(self.path)
         path = url.path.rstrip("/")
+
+        if path == "/api/ccw":
+            body = self.parse_json_body()
+            if not body:
+                self.send_error_json(400, "Invalid JSON payload.")
+                return
+
+            db = load_db()
+            ccw = db.get("ccw", {})
+            ccw["permitNumber"] = body.get("permitNumber", ccw.get("permitNumber", "")).strip()
+            ccw["issuingAgency"] = body.get("issuingAgency", ccw.get("issuingAgency", "San Diego County Sheriff's Department")).strip()
+            ccw["expirationDate"] = body.get("expirationDate", ccw.get("expirationDate", ""))
+            ccw["issueDate"] = body.get("issueDate", ccw.get("issueDate", ""))
+            ccw["holderName"] = body.get("holderName", ccw.get("holderName", "Phimane")).strip()
+            ccw["status"] = body.get("status", ccw.get("status", "Active"))
+            ccw["emailAlertsEnabled"] = bool(body.get("emailAlertsEnabled", ccw.get("emailAlertsEnabled", True)))
+            ccw["recipientEmail"] = body.get("recipientEmail", ccw.get("recipientEmail", "phimane@gmail.com")).strip()
+
+            # Key Critical Renewal Checklist items
+            ccw["liveScanCompleted"] = bool(body.get("liveScanCompleted", ccw.get("liveScanCompleted", False)))
+            ccw["liveScanDate"] = body.get("liveScanDate", ccw.get("liveScanDate", ""))
+            ccw["liveScanNotes"] = body.get("liveScanNotes", ccw.get("liveScanNotes", "")).strip()
+
+            ccw["trainingCompleted"] = bool(body.get("trainingCompleted", ccw.get("trainingCompleted", False)))
+            ccw["trainingDate"] = body.get("trainingDate", ccw.get("trainingDate", ""))
+            ccw["trainingHours"] = int(body.get("trainingHours") or ccw.get("trainingHours", 8))
+            ccw["trainingNotes"] = body.get("trainingNotes", ccw.get("trainingNotes", "")).strip()
+
+            ccw["sdsoUploadCompleted"] = bool(body.get("sdsoUploadCompleted", ccw.get("sdsoUploadCompleted", False)))
+            ccw["sdsoUploadDate"] = body.get("sdsoUploadDate", ccw.get("sdsoUploadDate", ""))
+            ccw["sdsoUploadNotes"] = body.get("sdsoUploadNotes", ccw.get("sdsoUploadNotes", "")).strip()
+
+            ccw["checklistNotes"] = body.get("checklistNotes", ccw.get("checklistNotes", "")).strip()
+            if "qualifyingGuns" in body:
+                ccw["qualifyingGuns"] = body["qualifyingGuns"]
+
+            db["ccw"] = ccw
+            save_db(db)
+
+            # Re-calculate days remaining
+            days_left = None
+            if ccw.get("expirationDate"):
+                try:
+                    exp_date = datetime.strptime(ccw["expirationDate"], "%Y-%m-%d").date()
+                    days_left = (exp_date - datetime.now().date()).days
+                except Exception:
+                    pass
+            ccw["daysRemaining"] = days_left
+            self.send_json(200, {"success": True, "ccw": ccw})
+            return
 
         if path.startswith("/api/firearms/"):
             item_id = path.split("/api/firearms/")[1]
@@ -504,6 +841,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             existing["replacementValue"] = float(body.get("replacementValue") if body.get("replacementValue") is not None else existing.get("replacementValue", 0))
             existing["roundCount"] = int(body.get("roundCount") if body.get("roundCount") is not None else existing.get("roundCount", 0))
             existing["notes"] = body.get("notes", existing.get("notes", "")).strip()
+            existing["onCCW"] = bool(body.get("onCCW", existing.get("onCCW", False)))
 
             if "images" in body:
                 existing["images"] = body["images"]
@@ -548,6 +886,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 def main():
     threading.Thread(target=backup_worker, daemon=True).start()
     threading.Thread(target=code_reload_watcher, daemon=True).start()
+    threading.Thread(target=ccw_reminder_worker, daemon=True).start()
     server_address = ("0.0.0.0", PORT)
     httpd = HTTPServer(server_address, RequestHandler)
     print(f"[FIREARMS INVENTORY] Running on port {PORT}...")
