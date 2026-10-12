@@ -580,6 +580,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         if path == "/api/firearms":
             db = load_db()
             items = db.get("firearms", [])
+            # Alphabetically sort by Manufacturer (make), then model
+            items.sort(key=lambda it: (it.get("make", "").strip().lower(), it.get("model", "").strip().lower()))
             type_filter = query.get("type", [None])[0]
             search = query.get("q", [None])[0]
 

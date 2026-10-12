@@ -1302,15 +1302,33 @@
     </div>
   </div>
 
-  <!-- Filter Bar -->
-  <div class="filter-bar" id="filterBar">
-    <button class="chip active" data-type="All">All Classifications</button>
-    <button class="chip" data-type="CCW" style="color:#fbbf24; border-color:rgba(245,158,11,0.35);">🛡️ On CCW Permit</button>
-    <button class="chip" data-type="Pistol">Pistols</button>
-    <button class="chip" data-type="Rifle">Rifles</button>
-    <button class="chip" data-type="Shotgun">Shotguns</button>
-    <button class="chip" data-type="NFA / Suppressor">NFA / Suppressors</button>
-    <button class="chip" data-type="Receiver / Lower">Receivers</button>
+  <!-- Filter & Sort Bar -->
+  <div class="filter-controls-wrap" style="padding: 14px 24px 6px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+    <div class="filter-bar" id="filterBar" style="padding: 0; flex: 1; min-width: 280px;">
+      <button class="chip active" data-type="All">All Classifications</button>
+      <button class="chip" data-type="CCW" style="color:#fbbf24; border-color:rgba(245,158,11,0.35);">🛡️ On CCW Permit</button>
+      <button class="chip" data-type="Pistol">Pistols</button>
+      <button class="chip" data-type="Rifle">Rifles</button>
+      <button class="chip" data-type="Shotgun">Shotguns</button>
+      <button class="chip" data-type="NFA / Suppressor">NFA / Suppressors</button>
+      <button class="chip" data-type="Receiver / Lower">Receivers</button>
+    </div>
+
+    <!-- Sort Selector -->
+    <div class="sort-selector-wrap" style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+      <label for="sortSelect" style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 5px;">
+        <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
+        Sort:
+      </label>
+      <select id="sortSelect" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; outline: none; transition: all 0.15s ease;">
+        <option value="make-asc" selected>Manufacturer (A → Z)</option>
+        <option value="make-desc">Manufacturer (Z → A)</option>
+        <option value="model-asc">Model (A → Z)</option>
+        <option value="value-desc">Value (High to Low)</option>
+        <option value="rounds-desc">Round Count (High to Low)</option>
+        <option value="recent-desc">Recently Updated</option>
+      </select>
+    </div>
   </div>
 
   <!-- Main Grid -->
@@ -2103,6 +2121,7 @@
     // App State
     let firearms = [];
     let currentFilter = "All";
+    let currentSort = "make-asc";
     let maskSerials = true;
     let selectedFirearm = null;
     let currentDetailImageIdx = 0;
@@ -2138,7 +2157,11 @@
         const res = await fetch('/api/firearms');
         const data = await res.json();
         if (data.success) {
-          firearms = data.firearms || [];
+          firearms = (data.firearms || []).sort((a, b) => {
+            const makeA = (a.make || '').trim().toLowerCase();
+            const makeB = (b.make || '').trim().toLowerCase();
+            return makeA.localeCompare(makeB) || (a.model || '').trim().toLowerCase().localeCompare((b.model || '').trim().toLowerCase());
+          });
           renderSummary(data.summary);
           renderFirearmsGrid();
         }
@@ -2163,7 +2186,7 @@
       grid.innerHTML = '';
 
       const search = document.getElementById('searchInput').value.trim().toLowerCase();
-      let list = firearms;
+      let list = [...firearms];
 
       if (currentFilter === 'CCW') {
         list = list.filter(f => f.onCCW === true);
@@ -2181,6 +2204,40 @@
           (f.accessories || []).some(a => (a.name || '').toLowerCase().includes(search))
         );
       }
+
+      // Alphabetically sort by Manufacturer (make) by default or selected criteria
+      list.sort((a, b) => {
+        const makeA = (a.make || '').trim().toLowerCase();
+        const makeB = (b.make || '').trim().toLowerCase();
+        const modelA = (a.model || '').trim().toLowerCase();
+        const modelB = (b.model || '').trim().toLowerCase();
+
+        switch (currentSort) {
+          case 'make-asc':
+            return makeA.localeCompare(makeB) || modelA.localeCompare(modelB);
+          case 'make-desc':
+            return makeB.localeCompare(makeA) || modelA.localeCompare(modelB);
+          case 'model-asc':
+            return modelA.localeCompare(modelB) || makeA.localeCompare(makeB);
+          case 'value-desc': {
+            const valA = Number(a.replacementValue || a.purchasePrice || 0);
+            const valB = Number(b.replacementValue || b.purchasePrice || 0);
+            return valB - valA || makeA.localeCompare(makeB);
+          }
+          case 'rounds-desc': {
+            const rdsA = Number(a.roundCount || 0);
+            const rdsB = Number(b.roundCount || 0);
+            return rdsB - rdsA || makeA.localeCompare(makeB);
+          }
+          case 'recent-desc': {
+            const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+            const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+            return dateB - dateA;
+          }
+          default:
+            return makeA.localeCompare(makeB) || modelA.localeCompare(modelB);
+        }
+      });
 
       if (list.length === 0) {
         grid.innerHTML = `
@@ -2441,6 +2498,16 @@
         renderFirearmsGrid();
       };
     });
+
+    // Sort Selector
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+      sortSelect.value = currentSort;
+      sortSelect.onchange = (e) => {
+        currentSort = e.target.value;
+        renderFirearmsGrid();
+      };
+    }
 
     // Search Input
     document.getElementById('searchInput').oninput = () => renderFirearmsGrid();

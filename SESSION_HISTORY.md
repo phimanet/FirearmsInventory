@@ -21,3 +21,22 @@
   - Form checkbox toggle `🛡️ Listed on CCW Permit` when adding or editing firearms.
   - Filter bar chip `🛡️ On CCW Permit` to view all weapons authorized on the permit.
 - Added comprehensive CCW management modal (`#ccwModal`) with expiration countdown, checklist tracking, and test email button.
+
+## Alphabetical Sorting by Manufacturer & Sort Selector (2026-10-12)
+- **Alphabetical Manufacturer Sorting (`server.py` & `index.html`)**:
+  - Implemented automatic alphabetical sorting by Manufacturer (`make` A → Z), sub-sorted by Model (`model` A → Z).
+  - Applied server-side in `handle_get_firearms()` so all API responses, scripts, and exports are sorted alphabetically.
+  - Applied client-side in `fetchFirearms()` so master inventory arrays, Insurance Valuation reports, and Compare matrices inherit alphabetical Manufacturer ordering.
+- **Dynamic Sort Selector Control (`index.html`)**:
+  - Added responsive Sort dropdown alongside classification chips in the filter bar.
+  - Supports sorting by:
+    - `Manufacturer (A → Z)` *(Default)*
+    - `Manufacturer (Z → A)`
+    - `Model (A → Z)`
+    - `Value (High to Low)`
+    - `Round Count (High to Low)`
+    - `Recently Updated`
+  - Re-sorts filtered inventory live on change without page reloads.
+- **Git Deployment Pipeline**:
+  - Committed and pushed to `phimanet/FirearmsInventory` (`origin main`) for auto-deployment to `192.168.72.10:8186`.
+
