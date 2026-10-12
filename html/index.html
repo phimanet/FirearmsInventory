@@ -2209,7 +2209,10 @@
             ${photoHtml}
           </div>
           <div class="card-photo-bar">
-            <span class="card-badge-type">${f.type || 'Firearm'}</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="card-badge-type">${f.type || 'Firearm'}</span>
+              ${ccwBadgeHtml}
+            </div>
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="card-badge-rounds">${formatNumber(f.roundCount || 0)} Rds</span>
               ${zoomBadgeHtml}
@@ -2222,10 +2225,7 @@
                 <div class="card-model">${f.model || ''}</div>
               </div>
               <div class="card-val">
-                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
-                  ${ccwBadgeHtml}
-                  <div class="card-price-primary">${formatCurrency(f.replacementValue || f.purchasePrice || 0)}</div>
-                </div>
+                <div class="card-price-primary">${formatCurrency(f.replacementValue || f.purchasePrice || 0)}</div>
                 <div class="card-price-sub">Value</div>
               </div>
             </div>
