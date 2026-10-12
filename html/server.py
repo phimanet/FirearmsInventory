@@ -234,6 +234,22 @@ def backup_worker():
         except Exception as e:
             print(f"[BACKUP] Error: {e}")
 
+def code_reload_watcher():
+    """Watches server.py for changes and restarts process automatically."""
+    try:
+        last_mtime = os.stat(__file__).st_mtime
+    except Exception:
+        return
+    while True:
+        time.sleep(2)
+        try:
+            current_mtime = os.stat(__file__).st_mtime
+            if current_mtime != last_mtime:
+                print(f"[RELOAD] File change detected on {__file__}. Restarting process...")
+                os._exit(0)
+        except Exception:
+            pass
+
 def load_env():
     env_vars = {}
     candidates = [
