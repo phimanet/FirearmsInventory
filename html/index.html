@@ -161,9 +161,22 @@
     .metrics { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
     .metric-item { display: flex; flex-direction: column; }
     .metric-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 600; }
-    .metric-val { font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
     .metric-val.emerald { color: #34d399; }
     .metric-val.blue { color: #60a5fa; }
+    .metric-val.amber { color: #fbbf24; }
+    .metric-item.metric-ccw {
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      transition: all 0.15s ease;
+    }
+    .metric-item.metric-ccw:hover {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: rgba(245, 158, 11, 0.6);
+      transform: translateY(-1px);
+    }
 
     /* Filter Chips */
     .filter-bar {
@@ -1075,6 +1088,17 @@
       <div class="metric-item">
         <span class="metric-label">Total Rounds Tracked</span>
         <span class="metric-val" id="summaryRounds">0 Rds</span>
+      </div>
+      <!-- CCW Permit Expiration & Countdown (Prominent on Main Page) -->
+      <div class="metric-item metric-ccw" id="summaryCcwMetricItem" onclick="openCcwModal()" title="Click to view & manage California CCW Permit & SDSO Renewal">
+        <span class="metric-label" style="color:#fbbf24; display:flex; align-items:center; gap:4px;">
+          <svg viewBox="0 0 24 24" style="width:12px; height:12px; fill:#fbbf24;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+          CCW Expiration
+        </span>
+        <span class="metric-val amber" id="summaryCcwDays" style="display:flex; align-items:baseline; gap:6px;">
+          <span id="summaryCcwDaysNumber" style="font-size:1.25rem; font-weight:800;">--</span>
+          <span id="summaryCcwDaysText" style="font-size:0.75rem; font-weight:700; color:var(--text-muted);">Days Remaining</span>
+        </span>
       </div>
     </div>
     <div style="font-size:0.75rem; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
@@ -3762,22 +3786,67 @@
 
     function updateCcwHeaderBadge() {
       const badge = document.getElementById('ccwHeaderBadge');
-      if (!badge || !ccwData) return;
+      const numEl = document.getElementById('summaryCcwDaysNumber');
+      const textEl = document.getElementById('summaryCcwDaysText');
+      const metricItem = document.getElementById('summaryCcwMetricItem');
+
+      if (!ccwData) return;
       const days = ccwData.daysRemaining;
-      if (days !== null && days !== undefined && days <= 120) {
-        badge.style.display = 'inline-block';
-        if (days < 0) {
-          badge.textContent = 'EXPIRED';
-          badge.style.background = '#f43f5e';
-        } else if (days <= 90) {
-          badge.textContent = `${days}d (URGENT)`;
-          badge.style.background = '#f43f5e';
+
+      // Update Top Header Tiny Badge
+      if (badge) {
+        if (days !== null && days !== undefined && days <= 120) {
+          badge.style.display = 'inline-block';
+          if (days < 0) {
+            badge.textContent = 'EXPIRED';
+            badge.style.background = '#f43f5e';
+          } else if (days <= 90) {
+            badge.textContent = `${days}d (URGENT)`;
+            badge.style.background = '#f43f5e';
+          } else {
+            badge.textContent = `${days}d`;
+            badge.style.background = '#f59e0b';
+          }
         } else {
-          badge.textContent = `${days}d`;
-          badge.style.background = '#f59e0b';
+          badge.style.display = 'none';
         }
-      } else {
-        badge.style.display = 'none';
+      }
+
+      // Update Prominent Main Page Metric Banner
+      if (numEl && textEl && metricItem) {
+        if (days !== null && days !== undefined) {
+          if (days < 0) {
+            numEl.textContent = `${Math.abs(days)}d Overdue`;
+            numEl.style.color = '#fb7185';
+            textEl.textContent = 'Permit Expired';
+            metricItem.style.background = 'rgba(244, 63, 94, 0.15)';
+            metricItem.style.borderColor = 'rgba(244, 63, 94, 0.5)';
+          } else if (days <= 90) {
+            numEl.textContent = `${days} Days`;
+            numEl.style.color = '#f43f5e';
+            textEl.textContent = '⚠️ SDSO Upload Due!';
+            metricItem.style.background = 'rgba(244, 63, 94, 0.12)';
+            metricItem.style.borderColor = 'rgba(244, 63, 94, 0.45)';
+          } else if (days <= 120) {
+            numEl.textContent = `${days} Days`;
+            numEl.style.color = '#fbbf24';
+            textEl.textContent = 'Renewal Open (120d)';
+            metricItem.style.background = 'rgba(245, 158, 11, 0.12)';
+            metricItem.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+          } else {
+            numEl.textContent = `${days} Days`;
+            numEl.style.color = '#34d399';
+            textEl.textContent = ccwData.expirationDate ? `Exp: ${ccwData.expirationDate}` : 'Active / Compliant';
+            metricItem.style.background = 'rgba(16, 185, 129, 0.08)';
+            metricItem.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+          }
+        } else {
+          numEl.textContent = 'Not Set';
+          numEl.style.color = 'var(--text-muted)';
+          textEl.textContent = 'Click to configure';
+          metricItem.style.background = 'rgba(245, 158, 11, 0.06)';
+          metricItem.style.borderColor = 'rgba(245, 158, 11, 0.25)';
+        }
       }
     }
 
